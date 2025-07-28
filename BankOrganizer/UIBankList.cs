@@ -12,6 +12,7 @@ namespace BankOrganizer.UI
     {
         private GameObject? _scrollView;
         private GameObject? _itemListContent;
+        private bool _isListeningForChanges = false;
 
         public void Create(GameObject? panelParent)
         {
@@ -19,8 +20,25 @@ namespace BankOrganizer.UI
 
             CreateScrollView(panelParent);
             
-            // Subscribe to bank data changes for auto-refresh
-            BankContainerManager.Instance.OnBankDataChanged += OnBankDataChanged;
+            // Don't subscribe to events immediately - wait until panel is visible
+        }
+
+        public void StartListeningForChanges()
+        {
+            if (!_isListeningForChanges)
+            {
+                BankContainerManager.Instance.OnBankDataChanged += OnBankDataChanged;
+                _isListeningForChanges = true;
+            }
+        }
+
+        public void StopListeningForChanges()
+        {
+            if (_isListeningForChanges)
+            {
+                BankContainerManager.Instance.OnBankDataChanged -= OnBankDataChanged;
+                _isListeningForChanges = false;
+            }
         }
 
         private void OnBankDataChanged()
@@ -315,8 +333,8 @@ namespace BankOrganizer.UI
 
         public void Destroy()
         {
-            // Unsubscribe from events to prevent memory leaks
-            BankContainerManager.Instance.OnBankDataChanged -= OnBankDataChanged;
+            // Stop listening for changes and unsubscribe from events
+            StopListeningForChanges();
             
             if (_scrollView != null)
             {

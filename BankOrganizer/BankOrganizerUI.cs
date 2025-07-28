@@ -52,10 +52,9 @@ namespace BankOrganizer.UI
             _isVisible = !_isVisible;
             SetVisible(_isVisible);
 
-            // Refresh the UI content when opening
+            // Log bank information when opening (RefreshContent is now handled in SetVisible)
             if (_isVisible)
             {
-                _mainPanel?.RefreshContent();
                 LogBankInformation();
             }
 
@@ -97,6 +96,16 @@ namespace BankOrganizer.UI
         {
             _isVisible = visible;
             _canvas?.SetActive(visible);
+            
+            // Control event listening based on visibility
+            if (visible)
+            {
+                _mainPanel?.RefreshContent();
+            }
+            else
+            {
+                _mainPanel?.OnPanelHidden();
+            }
         }
 
         public void Cleanup()

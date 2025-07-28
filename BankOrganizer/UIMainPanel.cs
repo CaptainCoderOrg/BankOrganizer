@@ -184,7 +184,15 @@ namespace BankOrganizer.UI
 
         public void RefreshContent()
         {
+            // Start listening for changes when panel becomes visible
+            _bankList?.StartListeningForChanges();
             _bankList?.RefreshList();
+        }
+
+        public void OnPanelHidden()
+        {
+            // Stop listening for changes when panel is hidden
+            _bankList?.StopListeningForChanges();
         }
 
         public void HandleDragging()
