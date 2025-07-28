@@ -27,7 +27,7 @@ namespace BankOrganizer.UI
             scrollRect.anchorMin = new Vector2(0f, 0f);
             scrollRect.anchorMax = new Vector2(1f, 1f);
             scrollRect.offsetMin = new Vector2(10, 10); // 10px margin from edges
-            scrollRect.offsetMax = new Vector2(-10, -70); // 10px margin, 70px from top for title
+            scrollRect.offsetMax = new Vector2(-10, -105); // 10px margin, 105px from top (title + controls)
 
             // Add ScrollRect component
             ScrollRect scrollRectComponent = _scrollView.AddComponent<ScrollRect>();
@@ -37,10 +37,9 @@ namespace BankOrganizer.UI
             scrollRectComponent.inertia = true; // Enable inertia for smooth scrolling
             scrollRectComponent.decelerationRate = 0.135f; // How quickly scrolling slows down
 
-            // Add invisible image to block input events
+            // Add invisible image
             Image scrollViewBlocker = _scrollView.AddComponent<Image>();
             scrollViewBlocker.color = new Color(0, 0, 0, 0); // Completely transparent
-            scrollViewBlocker.raycastTarget = true; // Block raycasts to prevent camera interaction
 
             // Create viewport
             GameObject viewport = new GameObject("Viewport");
@@ -55,7 +54,6 @@ namespace BankOrganizer.UI
             // Add mask to viewport
             Image viewportImage = viewport.AddComponent<Image>();
             viewportImage.color = new Color(0, 0, 0, 0.1f); // Very transparent background
-            viewportImage.raycastTarget = true; // Block raycasts to prevent camera interaction
             Mask viewportMask = viewport.AddComponent<Mask>();
             viewportMask.showMaskGraphic = false;
 
@@ -131,7 +129,6 @@ namespace BankOrganizer.UI
             // Add background with different color
             Image headerBackground = headerEntry.AddComponent<Image>();
             headerBackground.color = new Color(0.1f, 0.3f, 0.5f, 0.7f); // Blue tint
-            headerBackground.raycastTarget = true; // Block raycasts even over text areas
 
             // Create text for summary
             GameObject textObj = new GameObject("HeaderText");
@@ -148,7 +145,6 @@ namespace BankOrganizer.UI
             headerText.fontSize = 12;
             headerText.color = Color.cyan;
             headerText.alignment = TextAnchor.MiddleCenter;
-            headerText.raycastTarget = false; // Disable raycast on text so background handles it
             headerText.text = $"{uniqueItems} Unique Items • {totalSlots} Slots Used";
 
             // Add layout element
@@ -181,7 +177,6 @@ namespace BankOrganizer.UI
             itemText.fontSize = 14;
             itemText.color = Color.white;
             itemText.alignment = TextAnchor.MiddleLeft;
-            itemText.raycastTarget = false; // Disable raycast on text so background handles it
 
             // Format text using the BankEntry data
             string stackInfo = entry.SlotCount > 1 ? $" ({entry.SlotCount} stacks)" : "";

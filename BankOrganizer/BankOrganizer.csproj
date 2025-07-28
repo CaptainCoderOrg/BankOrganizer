@@ -549,7 +549,9 @@
       <FilesToCopy Include="$(TargetDir)BankOrganizer.dll" />
     </ItemGroup>
     <Copy SourceFiles="@(FilesToCopy)" DestinationFolder="$(GamePath)/Mods" />
-	  <Copy SourceFiles="@(FilesToCopy)" DestinationFolder="$(AppPath)/Mods" />
+	  <!-- <Copy SourceFiles="@(FilesToCopy)" DestinationFolder="$(AppPath)/Mods" /> -->
   </Target>
+
+		
 
 </Project>

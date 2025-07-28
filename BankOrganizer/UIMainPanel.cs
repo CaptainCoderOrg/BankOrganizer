@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using BankOrganizer.Camera;
 
 namespace BankOrganizer.UI
 {
@@ -9,6 +10,8 @@ namespace BankOrganizer.UI
         private UITitleText? _titleText;
         private UIBankList? _bankList;
         private GameObject? _resizeHandle;
+        private GameObject? _controlsContainer;
+        private UICheckbox? _blockCameraCheckbox;
 
         // Drag functionality
         private bool _isDragging = false;
@@ -42,7 +45,6 @@ namespace BankOrganizer.UI
             // Add background image
             Image panelImage = _panelObject.AddComponent<Image>();
             panelImage.color = new Color(0.2f, 0.2f, 0.2f, 0.9f); // Dark semi-transparent background
-            panelImage.raycastTarget = true; // Block raycasts to prevent camera interaction
 
             // Add a border/outline effect
             Outline outline = _panelObject.AddComponent<Outline>();
@@ -56,9 +58,43 @@ namespace BankOrganizer.UI
             _titleText = new UITitleText();
             _titleText.Create(_panelObject);
 
+            // Create controls container
+            CreateControlsContainer();
+
             // Create bank list
             _bankList = new UIBankList();
             _bankList.Create(_panelObject);
+        }
+
+        private void OnBlockCameraToggled(bool isBlocked)
+        {
+            MelonLoader.MelonLogger.Msg($"Camera blocking toggled: {(isBlocked ? "ON" : "OFF")}");
+
+            if (isBlocked)
+            {
+                // Enable camera blocking
+                CameraBlocker.EnableBlocking();
+            }
+            else
+            {
+                // Disable camera blocking
+                CameraBlocker.DisableBlocking();
+            }
+
+            // Log the current blocking status
+            MelonLoader.MelonLogger.Msg(CameraBlocker.GetBlockingStatus());
+        }
+
+        private void EnableCameraBlocking()
+        {
+            // TODO: Implement camera blocking - disable zoom and rotation
+            MelonLoader.MelonLogger.Msg("Camera blocking enabled - zoom and rotation disabled");
+        }
+
+        private void DisableCameraBlocking()
+        {
+            // TODO: Implement camera unblocking - enable zoom and rotation
+            MelonLoader.MelonLogger.Msg("Camera blocking disabled - zoom and rotation enabled");
         }
 
         private void CreateResizeHandle()
@@ -78,7 +114,6 @@ namespace BankOrganizer.UI
             // Add visual indicator for the resize handle
             Image handleImage = _resizeHandle.AddComponent<Image>();
             handleImage.color = new Color(0.8f, 0.8f, 0.8f, 0.8f); // Light gray, semi-transparent
-            handleImage.raycastTarget = true; // Enable mouse interaction
 
             // Create diagonal lines to indicate resize functionality
             CreateResizeLines();
@@ -103,8 +138,40 @@ namespace BankOrganizer.UI
 
                 Image lineImage = line.AddComponent<Image>();
                 lineImage.color = new Color(0.5f, 0.5f, 0.5f, 1f); // Dark gray lines
-                lineImage.raycastTarget = false; // Don't block input events
             }
+        }
+
+        private void CreateControlsContainer()
+        {
+            if (_panelObject == null) return;
+
+            // Create controls container between title and bank list
+            _controlsContainer = new GameObject("ControlsContainer");
+            _controlsContainer.transform.SetParent(_panelObject.transform, false);
+
+            RectTransform controlsRect = _controlsContainer.AddComponent<RectTransform>();
+            controlsRect.anchorMin = new Vector2(0f, 1f);
+            controlsRect.anchorMax = new Vector2(1f, 1f);
+            controlsRect.sizeDelta = new Vector2(-20, 35); // 20px margin on sides, 35px height
+            controlsRect.anchoredPosition = new Vector2(0, -60); // Position below title (which is at -30)
+
+            // Add background
+            Image controlsBackground = _controlsContainer.AddComponent<Image>();
+            controlsBackground.color = new Color(0.15f, 0.15f, 0.15f, 0.8f); // Slightly darker than main panel
+
+            // Add vertical layout group for controls
+            VerticalLayoutGroup layoutGroup = _controlsContainer.AddComponent<VerticalLayoutGroup>();
+            layoutGroup.childControlHeight = true;
+            layoutGroup.childControlWidth = true;
+            layoutGroup.childForceExpandHeight = false;
+            layoutGroup.childForceExpandWidth = false;
+            layoutGroup.padding = new RectOffset(10, 10, 5, 5);
+            layoutGroup.spacing = 5f;
+
+            // Create camera blocking checkbox
+            _blockCameraCheckbox = new UICheckbox();
+            _blockCameraCheckbox.Create(_controlsContainer, "Block Camera Movement", false);
+            _blockCameraCheckbox.OnValueChanged += OnBlockCameraToggled;
         }
 
         public void RefreshContent()
@@ -120,7 +187,10 @@ namespace BankOrganizer.UI
             RectTransform panelRect = _panelObject.GetComponent<RectTransform>();
             if (panelRect == null) return;
 
-            // Handle resize functionality first (higher priority)
+            // Handle checkbox clicks first
+            _blockCameraCheckbox?.HandleClick();
+
+            // Handle resize functionality (higher priority than dragging)
             HandleResize(mousePosition, panelRect);
 
             // Only handle dragging if not resizing
@@ -241,8 +311,21 @@ namespace BankOrganizer.UI
 
         public void Destroy()
         {
+            // Make sure to disable camera blocking when panel is destroyed
+            if (CameraBlocker.IsBlocking)
+            {
+                CameraBlocker.DisableBlocking();
+            }
+
             _titleText?.Destroy();
             _bankList?.Destroy();
+            _blockCameraCheckbox?.Destroy();
+
+            if (_controlsContainer != null)
+            {
+                GameObject.Destroy(_controlsContainer);
+                _controlsContainer = null;
+            }
 
             if (_resizeHandle != null)
             {
