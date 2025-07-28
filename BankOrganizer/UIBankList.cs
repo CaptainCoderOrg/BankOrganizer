@@ -5,6 +5,7 @@ using BankOrganizer.Hooks;
 using MelonLoader;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace BankOrganizer.UI
 {
@@ -115,7 +116,7 @@ namespace BankOrganizer.UI
             scrollRectComponent.content = contentRect;
         }
 
-        public void RefreshList()
+        public void RefreshList(string searchText = "")
         {
             if (_itemListContent == null) return;
 
@@ -132,13 +133,16 @@ namespace BankOrganizer.UI
                 // Get bank data using our new model
                 var bankResult = BankEntry.BuildBankEntries();
 
-                // Create header showing summary
-                CreateSummaryHeader(bankResult.Entries.Count, bankResult.TotalSlots);
+                // Apply search filter if search text is provided
+                var filteredEntries = ApplySearchFilter(bankResult.Entries, searchText);
 
-                // Create UI elements for each bank entry - use for loop instead of foreach
-                for (int i = 0; i < bankResult.Entries.Count; i++)
+                // Create header showing summary (filtered count vs total)
+                CreateSummaryHeader(filteredEntries.Count, bankResult.Entries.Count, bankResult.TotalSlots, !string.IsNullOrWhiteSpace(searchText));
+
+                // Create UI elements for each filtered bank entry - use for loop instead of foreach
+                for (int i = 0; i < filteredEntries.Count; i++)
                 {
-                    CreateItemListEntry(bankResult.Entries[i]);
+                    CreateItemListEntry(filteredEntries[i]);
                 }
 
             }
@@ -149,7 +153,7 @@ namespace BankOrganizer.UI
             }
         }
 
-        private void CreateSummaryHeader(int uniqueItems, int totalSlots)
+        private void CreateSummaryHeader(int displayedItems, int totalItems, int totalSlots, bool isFiltered)
         {
             GameObject headerEntry = new GameObject("SummaryHeader");
             headerEntry.transform.SetParent(_itemListContent.transform, false);
@@ -169,12 +173,55 @@ namespace BankOrganizer.UI
             headerText.fontSize = 12;
             headerText.color = Color.white;
             headerText.alignment = TextAnchor.MiddleCenter;
-            headerText.text = $"{uniqueItems} Unique Items • {totalSlots} Slots Used";
+            
+            // Show filtered count vs total when search is active
+            if (isFiltered)
+            {
+                headerText.text = $"{displayedItems} of {totalItems} Items • {totalSlots} Slots Used";
+            }
+            else
+            {
+                headerText.text = $"{displayedItems} Unique Items • {totalSlots} Slots Used";
+            }
 
             // Add layout element
             LayoutElement layoutElement = headerEntry.AddComponent<LayoutElement>();
             layoutElement.preferredHeight = 12;
             layoutElement.minHeight = 12;
+        }
+
+        /// <summary>
+        /// Apply search filter to the list of bank entries
+        /// </summary>
+        private List<BankEntry> ApplySearchFilter(List<BankEntry> entries, string searchText)
+        {
+            if (string.IsNullOrWhiteSpace(searchText))
+                return entries; // No filter, return all
+
+            string[] searchTerms = searchText.Trim()
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            return entries.Where(entry =>
+                MatchesSearchTerms(entry.ItemName, searchTerms)).ToList();
+        }
+
+        /// <summary>
+        /// Check if an item name matches all search terms (case-insensitive)
+        /// </summary>
+        private static bool MatchesSearchTerms(string itemName, string[] searchTerms)
+        {
+            if (searchTerms.Length == 0) return true;
+            
+            string lowerItemName = itemName.ToLowerInvariant();
+            
+            foreach (string term in searchTerms)
+            {
+                if (!lowerItemName.Contains(term.ToLowerInvariant()))
+                {
+                    return false; // All terms must match
+                }
+            }
+            return true;
         }
 
         private void CreateItemListEntry(BankEntry entry)

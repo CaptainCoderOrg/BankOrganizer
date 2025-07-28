@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using UnityEngine;
 using UnityEngine.UI;
 using BankOrganizer.Camera;
 
@@ -11,6 +12,13 @@ namespace BankOrganizer.UI
         private UIBankList? _bankList;
         private GameObject? _resizeHandle;
         private GameObject? _controlsContainer;
+
+        // Search functionality
+        private InputField? _searchInputField;
+        private float _searchDebounceTimer = 0f;
+        private string _pendingSearchText = "";
+        private bool _searchPending = false;
+        private const float SEARCH_DEBOUNCE_DELAY = 0.3f;
 
         // Drag functionality
         private bool _isDragging = false;
@@ -69,18 +77,6 @@ namespace BankOrganizer.UI
             _bankList = new UIBankList();
             _bankList.Create(_panelObject);
         }
-
-
-        private void EnableCameraBlocking()
-        {
-            // TODO: Implement camera blocking - disable zoom and rotation
-        }
-
-        private void DisableCameraBlocking()
-        {
-            // TODO: Implement camera unblocking - enable zoom and rotation
-        }
-
         private void CreateResizeHandle()
         {
             if (_panelObject == null) return;
@@ -148,10 +144,118 @@ namespace BankOrganizer.UI
             layoutGroup.childControlHeight = true;
             layoutGroup.childControlWidth = true;
             layoutGroup.childForceExpandHeight = false;
-            layoutGroup.childForceExpandWidth = false;
+            layoutGroup.childForceExpandWidth = true;
             layoutGroup.padding = new RectOffset(10, 10, 5, 5);
             layoutGroup.spacing = 5f;
 
+            // Create search box
+            CreateSearchBox();
+        }
+
+        private void CreateSearchBox()
+        {
+            if (_controlsContainer == null) return;
+
+            // Create search container
+            GameObject searchContainer = new GameObject("SearchContainer");
+            searchContainer.transform.SetParent(_controlsContainer.transform, false);
+
+            RectTransform searchRect = searchContainer.AddComponent<RectTransform>();
+            searchRect.sizeDelta = new Vector2(0, 25); // Height of 25px, width controlled by layout group
+
+            // Add layout element to ensure proper sizing
+            LayoutElement searchLayoutElement = searchContainer.AddComponent<LayoutElement>();
+            searchLayoutElement.preferredHeight = 25;
+            searchLayoutElement.flexibleWidth = 1;
+
+            // Add background for search box
+            Image searchBackground = searchContainer.AddComponent<Image>();
+            searchBackground.color = new Color(0.1f, 0.1f, 0.1f, 0.9f); // Darker than controls container
+
+            // Create InputField
+            GameObject inputFieldObject = new GameObject("SearchInputField");
+            inputFieldObject.transform.SetParent(searchContainer.transform, false);
+
+            RectTransform inputRect = inputFieldObject.AddComponent<RectTransform>();
+            inputRect.anchorMin = Vector2.zero;
+            inputRect.anchorMax = Vector2.one;
+            inputRect.sizeDelta = Vector2.zero;
+            inputRect.anchoredPosition = Vector2.zero;
+
+            _searchInputField = inputFieldObject.AddComponent<InputField>();
+
+            // Create text component for InputField
+            GameObject textObject = new GameObject("Text");
+            textObject.transform.SetParent(inputFieldObject.transform, false);
+
+            RectTransform textRect = textObject.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.sizeDelta = Vector2.zero;
+            textRect.anchoredPosition = Vector2.zero;
+            textRect.offsetMin = new Vector2(10, 0); // Left padding
+            textRect.offsetMax = new Vector2(-10, 0); // Right padding
+
+            Text textComponent = textObject.AddComponent<Text>();
+            textComponent.text = "";
+            textComponent.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            textComponent.fontSize = 14;
+            textComponent.color = Color.white;
+            textComponent.alignment = TextAnchor.MiddleLeft;
+
+            // Create placeholder text
+            GameObject placeholderObject = new GameObject("Placeholder");
+            placeholderObject.transform.SetParent(inputFieldObject.transform, false);
+
+            RectTransform placeholderRect = placeholderObject.AddComponent<RectTransform>();
+            placeholderRect.anchorMin = Vector2.zero;
+            placeholderRect.anchorMax = Vector2.one;
+            placeholderRect.sizeDelta = Vector2.zero;
+            placeholderRect.anchoredPosition = Vector2.zero;
+            placeholderRect.offsetMin = new Vector2(10, 0); // Left padding
+            placeholderRect.offsetMax = new Vector2(-10, 0); // Right padding
+
+            Text placeholderText = placeholderObject.AddComponent<Text>();
+            placeholderText.text = "Search items...";
+            placeholderText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            placeholderText.fontSize = 14;
+            placeholderText.color = new Color(0.7f, 0.7f, 0.7f, 1f); // Light gray
+            placeholderText.alignment = TextAnchor.MiddleLeft;
+
+            // Configure InputField
+            _searchInputField.textComponent = textComponent;
+            _searchInputField.placeholder = placeholderText;
+            _searchInputField.targetGraphic = searchBackground;
+
+            // Add event listener for text changes
+            _searchInputField.onValueChanged.AddListener(new System.Action<string>(OnSearchTextChanged));
+        }
+
+        private void OnSearchTextChanged(string searchText)
+        {
+            // Set up debounce timer
+            _pendingSearchText = searchText;
+            _searchDebounceTimer = SEARCH_DEBOUNCE_DELAY;
+            _searchPending = true;
+        }
+
+        private void UpdateSearchDebounce()
+        {
+            if (_searchPending)
+            {
+                _searchDebounceTimer -= Time.deltaTime;
+                if (_searchDebounceTimer <= 0f)
+                {
+                    ExecuteSearch(_pendingSearchText);
+                    _searchPending = false;
+                }
+            }
+        }
+
+        private void ExecuteSearch(string searchText)
+        {
+            // Execute search by calling RefreshList with search text
+            _bankList?.RefreshList(searchText);
         }
 
         public void RefreshContent()
@@ -187,6 +291,9 @@ namespace BankOrganizer.UI
 
             // Handle scrolling detection
             HandleScrolling();
+
+            // Update search debounce timer
+            UpdateSearchDebounce();
 
             // Update auto-blocking timer and state
             UpdateAutoBlocking();
@@ -387,6 +494,12 @@ namespace BankOrganizer.UI
             // Reset auto-blocking state
             _autoBlockingEnabled = false;
             _autoBlockingTimer = 0f;
+
+            // Clean up search components
+            _searchPending = false;
+            _searchDebounceTimer = 0f;
+            _pendingSearchText = "";
+            _searchInputField = null;
 
             _titleText?.Destroy();
             _bankList?.Destroy();

@@ -36,8 +36,6 @@ namespace BankOrganizer.Camera
 
                 // Disable input processing for cameras
                 DisableCameraInputs();
-
-                MelonLogger.Msg("Camera blocking enabled - found and disabled camera controls");
             }
             catch (System.Exception ex)
             {
@@ -76,8 +74,6 @@ namespace BankOrganizer.Camera
 
                 _disabledScripts.Clear();
                 _disabledCameras.Clear();
-
-                MelonLogger.Msg("Camera blocking disabled - re-enabled camera controls");
             }
             catch (System.Exception ex)
             {
@@ -108,7 +104,6 @@ namespace BankOrganizer.Camera
                         {
                             script.enabled = false;
                             _disabledScripts.Add(script);
-                            MelonLogger.Msg($"Disabled camera controller: {script.GetType().Name} on {cam.name}");
                         }
                     }
                 }
@@ -128,7 +123,6 @@ namespace BankOrganizer.Camera
                             {
                                 script.enabled = false;
                                 _disabledScripts.Add(script);
-                                MelonLogger.Msg($"Disabled parent camera controller: {script.GetType().Name} on {parent.name}");
                             }
                         }
                     }
@@ -152,7 +146,6 @@ namespace BankOrganizer.Camera
                     {
                         script.enabled = false;
                         _disabledScripts.Add(script);
-                        MelonLogger.Msg($"Disabled camera input controller: {script.GetType().Name} on {script.gameObject.name}");
                     }
                 }
             }
@@ -215,7 +208,6 @@ namespace BankOrganizer.Camera
                     {
                         cam.enabled = false;
                         _disabledCameras.Add(cam);
-                        MelonLogger.Msg($"Force disabled camera: {cam.name}");
                     }
                 }
             }

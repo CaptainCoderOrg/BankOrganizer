@@ -17,7 +17,6 @@ public class UIItemSlotSetItem
     // public unsafe override void OnInitialize(IEntity entity, Item item)
     public static void Postfix(UIItemSlot __instance, IEntity entity, Item item, int newSlotIndex)
     {
-        //MelonLogger.Msg("Postfix: UIItemSlot.SetItem");
         if (__instance == null) { return; }
         if (__instance.SlotType != SlotType.Bank) { return; }
         if (__instance.ParentGuid == default) { return; } // Is a root bank slo
@@ -33,7 +32,6 @@ public class UIItemSlotClear
 {
     public static void Postfix(UIItemSlot __instance, bool clearSlotIndex)
     {
-        //MelonLogger.Msg("Postfix: UIItemSlot.Clear");
         if (__instance == null) { return; }
         if (__instance.SlotType != SlotType.Bank) { return; }
         if (__instance.ParentGuid == default) { return; } // Is a root bank slo
@@ -50,7 +48,6 @@ public class UIBagManagerCreateBagWindowIfItDoesNotExist
     // public unsafe override void OnInitialize(IEntity entity, Item item)
     public static void Postfix(UIBagManager __instance, Item item, ref UIBag __result)
     {
-        //MelonLogger.Msg("Postfix: UIBagManager.UIBagManagerCreateBagWindowIfItDoesNotExist");
         if (item == null || item.WasCollected || item.SlotType != SlotType.Bank) { return; }
 
         if (__instance.bagWindows.TryGetValue(item.ItemInstanceGuid, out UIBag bagWindow))
