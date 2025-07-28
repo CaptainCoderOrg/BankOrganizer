@@ -18,6 +18,15 @@ namespace BankOrganizer.UI
             if (panelParent == null) return;
 
             CreateScrollView(panelParent);
+            
+            // Subscribe to bank data changes for auto-refresh
+            BankContainerManager.Instance.OnBankDataChanged += OnBankDataChanged;
+        }
+
+        private void OnBankDataChanged()
+        {
+            MelonLogger.Msg("Bank data changed - refreshing UI");
+            RefreshList();
         }
 
         private void CreateScrollView(GameObject panelParent)
@@ -308,6 +317,9 @@ namespace BankOrganizer.UI
 
         public void Destroy()
         {
+            // Unsubscribe from events to prevent memory leaks
+            BankContainerManager.Instance.OnBankDataChanged -= OnBankDataChanged;
+            
             if (_scrollView != null)
             {
                 GameObject.Destroy(_scrollView);

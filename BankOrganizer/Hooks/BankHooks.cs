@@ -283,6 +283,9 @@ public class BankContainerManager
 
     private readonly Dictionary<string, BankContainer> _containers = new();
 
+    // Event for when any bank data changes
+    public event Action? OnBankDataChanged;
+
     private BankContainerManager() { }
 
     public static BankContainerManager Instance
@@ -306,9 +309,18 @@ public class BankContainerManager
         if (!_containers.TryGetValue(guid, out BankContainer? container))
         {
             container = new BankContainer(guid);
+            // Subscribe to container changes
+            container.OnContainerChanged += OnContainerChanged;
             _containers[guid] = container;
         }
         return container;
+    }
+
+    private void OnContainerChanged(BankContainer container)
+    {
+        MelonLogger.Msg($"Bank Container Changed: {container.GUID}");
+        // Trigger the bank data changed event
+        OnBankDataChanged?.Invoke();
     }
 
     public void SyncItemSlot(UIItemSlot slot)
@@ -329,6 +341,8 @@ public class BankContainerManager
     public void ReportItemChanged(ItemDataReference idr)
     {
         MelonLogger.Msg($"Item Data Reference Changed: {idr}");
+        // Trigger the bank data changed event
+        OnBankDataChanged?.Invoke();
     }
 
     public void ClearAll()
@@ -348,6 +362,9 @@ public class BankContainer
     public string GUID { get; private set; }
     public int BankIndex { get; set; }
 
+    // Event for when this container's data changes
+    public event Action<BankContainer>? OnContainerChanged;
+
     internal BankContainer(string guid) => GUID = guid;
 
     public ItemDataReference GetItemReference(int slotIndex)
@@ -358,9 +375,17 @@ public class BankContainer
             idr.BankIndex = BankIndex;
             idr.ItemSlotIndex = slotIndex;
             _slots[slotIndex] = idr;
-            idr.OnChange += BankContainerManager.Instance.ReportItemChanged;
+            // Subscribe to item changes
+            idr.OnChange += OnItemChanged;
         }
         return idr;
+    }
+
+    private void OnItemChanged(ItemDataReference idr)
+    {
+        MelonLogger.Msg($"Item changed in container {GUID}: {idr}");
+        // Trigger container changed event
+        OnContainerChanged?.Invoke(this);
     }
 
     internal void SyncBankContainerData(Il2CppSystem.Collections.Generic.Dictionary<int, UIItemSlot> slots)
