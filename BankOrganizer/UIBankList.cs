@@ -243,6 +243,11 @@ namespace BankOrganizer.UI
             Image stackBackground = stackElement.AddComponent<Image>();
             stackBackground.color = new Color(0.2f, 0.2f, 0.2f, 0.6f);
 
+            // Add Button component for click functionality
+            Button stackButton = stackElement.AddComponent<Button>();
+            stackButton.targetGraphic = stackBackground;
+            stackButton.onClick.AddListener((System.Action)itemRef.OnClickBankStack);
+
             // Create icon container
             GameObject iconObj = new GameObject("StackIcon");
             iconObj.transform.SetParent(stackElement.transform, false);

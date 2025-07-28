@@ -187,6 +187,49 @@ public class ItemDataReference
         }
         MelonLogger.Msg($"Moving to Inventory: {this}");
         
+        try
+        {
+            // Create a PointerEventData for right-click simulation
+            var eventSystem = UnityEngine.EventSystems.EventSystem.current;
+            if (eventSystem == null)
+            {
+                MelonLogger.Warning("Cannot move item to inventory: No EventSystem found");
+                return;
+            }
+
+            var pointerEventData = new UnityEngine.EventSystems.PointerEventData(eventSystem);
+            
+            // Configure for right-click
+            pointerEventData.button = UnityEngine.EventSystems.PointerEventData.InputButton.Right;
+            pointerEventData.clickCount = 1;
+            pointerEventData.clickTime = UnityEngine.Time.unscaledTime;
+            pointerEventData.eligibleForClick = true;
+            
+            // Set position (can be approximate since we're simulating)
+            pointerEventData.position = new UnityEngine.Vector2(0, 0);
+            pointerEventData.pressPosition = new UnityEngine.Vector2(0, 0);
+            
+            // Set the target GameObject
+            pointerEventData.pointerClick = ItemSlot.gameObject;
+            pointerEventData.pointerPress = ItemSlot.gameObject;
+            pointerEventData.rawPointerPress = ItemSlot.gameObject;
+
+            // Call the PointerClicked method to simulate right-click
+            ItemSlot.PointerClicked(pointerEventData);
+            
+            MelonLogger.Msg($"Simulated right-click on {this} to move to inventory");
+        }
+        catch (System.Exception ex)
+        {
+            MelonLogger.Error($"Failed to move item to inventory for {this}: {ex.Message}");
+            MelonLogger.Error($"Stack trace: {ex.StackTrace}");
+        }
+    }
+
+    public void OnClickBankStack()
+    {
+        MelonLogger.Msg($"Clicked {this}");
+        MoveItemToInventory();
     }
 
     public override string? ToString()
