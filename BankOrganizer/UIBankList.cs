@@ -57,7 +57,7 @@ namespace BankOrganizer.UI
             scrollRect.anchorMin = new Vector2(0f, 0f);
             scrollRect.anchorMax = new Vector2(1f, 1f);
             scrollRect.offsetMin = new Vector2(10, 10); // 10px margin from edges
-            scrollRect.offsetMax = new Vector2(-10, -105); // 10px margin, 105px from top (title + controls)
+            scrollRect.offsetMax = new Vector2(-10, -140); // 10px margin, 140px from top (title + expanded controls)
 
             // Add ScrollRect component
             ScrollRect scrollRectComponent = _scrollView.AddComponent<ScrollRect>();

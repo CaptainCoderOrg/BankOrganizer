@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using BankOrganizer.Camera;
@@ -19,6 +20,10 @@ namespace BankOrganizer.UI
         private string _pendingSearchText = "";
         private bool _searchPending = false;
         private const float SEARCH_DEBOUNCE_DELAY = 0.3f;
+
+        // Filter functionality
+        private Dropdown? _equipSlotFilterDropdown;
+        private Il2Cpp.EquipSlotTypeFlag _currentEquipSlotFilter = (Il2Cpp.EquipSlotTypeFlag)(-1); // Default to "All"
 
         // Drag functionality
         private bool _isDragging = false;
@@ -132,7 +137,7 @@ namespace BankOrganizer.UI
             RectTransform controlsRect = _controlsContainer.AddComponent<RectTransform>();
             controlsRect.anchorMin = new Vector2(0f, 1f);
             controlsRect.anchorMax = new Vector2(1f, 1f);
-            controlsRect.sizeDelta = new Vector2(-20, 35); // 20px margin on sides, 35px height
+            controlsRect.sizeDelta = new Vector2(-20, 70); // 20px margin on sides, 70px height for search + filter
             controlsRect.anchoredPosition = new Vector2(0, -60); // Position below title (which is at -30)
 
             // Add background
@@ -150,6 +155,9 @@ namespace BankOrganizer.UI
 
             // Create search box
             CreateSearchBox();
+            
+            // Create filter dropdown
+            CreateEquipSlotFilterDropdown();
         }
 
         private void CreateSearchBox()
@@ -229,6 +237,247 @@ namespace BankOrganizer.UI
 
             // Add event listener for text changes
             _searchInputField.onValueChanged.AddListener(new System.Action<string>(OnSearchTextChanged));
+        }
+
+        private void CreateEquipSlotFilterDropdown()
+        {
+            if (_controlsContainer == null) return;
+
+            // Create filter container
+            GameObject filterContainer = new GameObject("FilterContainer");
+            filterContainer.transform.SetParent(_controlsContainer.transform, false);
+
+            RectTransform filterRect = filterContainer.AddComponent<RectTransform>();
+            filterRect.sizeDelta = new Vector2(0, 25); // Height of 25px, width controlled by layout group
+
+            // Add layout element to ensure proper sizing
+            LayoutElement filterLayoutElement = filterContainer.AddComponent<LayoutElement>();
+            filterLayoutElement.preferredHeight = 25;
+            filterLayoutElement.flexibleWidth = 1;
+
+            // Add background for filter container
+            Image filterBackground = filterContainer.AddComponent<Image>();
+            filterBackground.color = new Color(0.1f, 0.1f, 0.1f, 0.9f); // Same as search box
+
+            // Create dropdown
+            GameObject dropdownObject = new GameObject("EquipSlotFilterDropdown");
+            dropdownObject.transform.SetParent(filterContainer.transform, false);
+
+            RectTransform dropdownRect = dropdownObject.AddComponent<RectTransform>();
+            dropdownRect.anchorMin = Vector2.zero;
+            dropdownRect.anchorMax = Vector2.one;
+            dropdownRect.sizeDelta = Vector2.zero;
+            dropdownRect.anchoredPosition = Vector2.zero;
+
+            _equipSlotFilterDropdown = dropdownObject.AddComponent<Dropdown>();
+
+            // Create label for dropdown
+            GameObject labelObject = new GameObject("Label");
+            labelObject.transform.SetParent(dropdownObject.transform, false);
+
+            RectTransform labelRect = labelObject.AddComponent<RectTransform>();
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.sizeDelta = Vector2.zero;
+            labelRect.anchoredPosition = Vector2.zero;
+            labelRect.offsetMin = new Vector2(10, 0); // Left padding
+            labelRect.offsetMax = new Vector2(-25, 0); // Right padding (space for arrow)
+
+            Text labelText = labelObject.AddComponent<Text>();
+            labelText.text = "NONE";
+            labelText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            labelText.fontSize = 14;
+            labelText.color = Color.white;
+            labelText.alignment = TextAnchor.MiddleLeft;
+
+            // Create arrow for dropdown
+            GameObject arrowObject = new GameObject("Arrow");
+            arrowObject.transform.SetParent(dropdownObject.transform, false);
+
+            RectTransform arrowRect = arrowObject.AddComponent<RectTransform>();
+            arrowRect.anchorMin = new Vector2(1f, 0.5f);
+            arrowRect.anchorMax = new Vector2(1f, 0.5f);
+            arrowRect.sizeDelta = new Vector2(20, 20);
+            arrowRect.anchoredPosition = new Vector2(-15, 0);
+
+            Text arrowText = arrowObject.AddComponent<Text>();
+            arrowText.text = "▼";
+            arrowText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            arrowText.fontSize = 12;
+            arrowText.color = Color.white;
+            arrowText.alignment = TextAnchor.MiddleCenter;
+
+            // Create template for dropdown items
+            GameObject templateObject = new GameObject("Template");
+            templateObject.transform.SetParent(dropdownObject.transform, false);
+
+            RectTransform templateRect = templateObject.AddComponent<RectTransform>();
+            templateRect.anchorMin = new Vector2(0f, 0f);
+            templateRect.anchorMax = new Vector2(1f, 0f);
+            templateRect.sizeDelta = new Vector2(0, 150); // Height for dropdown list
+            templateRect.anchoredPosition = new Vector2(0, -75);
+
+            // Add ScrollRect to template for scrolling
+            ScrollRect templateScrollRect = templateObject.AddComponent<ScrollRect>();
+            templateScrollRect.horizontal = false;
+            templateScrollRect.vertical = true;
+
+            // Add background to template
+            Image templateBackground = templateObject.AddComponent<Image>();
+            templateBackground.color = new Color(0.1f, 0.1f, 0.1f, 0.95f);
+
+            // Create viewport for template
+            GameObject viewportObject = new GameObject("Viewport");
+            viewportObject.transform.SetParent(templateObject.transform, false);
+
+            RectTransform viewportRect = viewportObject.AddComponent<RectTransform>();
+            viewportRect.anchorMin = Vector2.zero;
+            viewportRect.anchorMax = Vector2.one;
+            viewportRect.sizeDelta = Vector2.zero;
+            viewportRect.anchoredPosition = Vector2.zero;
+
+            Image viewportImage = viewportObject.AddComponent<Image>();
+            viewportImage.color = new Color(0, 0, 0, 0);
+            Mask viewportMask = viewportObject.AddComponent<Mask>();
+            viewportMask.showMaskGraphic = false;
+
+            // Create content for template
+            GameObject contentObject = new GameObject("Content");
+            contentObject.transform.SetParent(viewportObject.transform, false);
+
+            RectTransform contentRect = contentObject.AddComponent<RectTransform>();
+            contentRect.anchorMin = new Vector2(0f, 1f);
+            contentRect.anchorMax = new Vector2(1f, 1f);
+            contentRect.sizeDelta = new Vector2(0, 0);
+            contentRect.anchoredPosition = Vector2.zero;
+
+            // Add ContentSizeFitter to content
+            ContentSizeFitter contentSizeFitter = contentObject.AddComponent<ContentSizeFitter>();
+            contentSizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            // Add VerticalLayoutGroup to content
+            VerticalLayoutGroup contentLayoutGroup = contentObject.AddComponent<VerticalLayoutGroup>();
+            contentLayoutGroup.childControlHeight = true;
+            contentLayoutGroup.childControlWidth = true;
+            contentLayoutGroup.childForceExpandHeight = false;
+            contentLayoutGroup.childForceExpandWidth = true;
+
+            // Create item template
+            GameObject itemObject = new GameObject("Item");
+            itemObject.transform.SetParent(contentObject.transform, false);
+
+            RectTransform itemRect = itemObject.AddComponent<RectTransform>();
+            itemRect.sizeDelta = new Vector2(0, 20);
+
+            // Add LayoutElement to item
+            LayoutElement itemLayoutElement = itemObject.AddComponent<LayoutElement>();
+            itemLayoutElement.preferredHeight = 20;
+
+            Toggle itemToggle = itemObject.AddComponent<Toggle>();
+
+            // Create item background
+            Image itemBackground = itemObject.AddComponent<Image>();
+            itemBackground.color = new Color(0.2f, 0.2f, 0.2f, 0.8f);
+
+            // Create item text
+            GameObject itemTextObject = new GameObject("Item Label");
+            itemTextObject.transform.SetParent(itemObject.transform, false);
+
+            RectTransform itemTextRect = itemTextObject.AddComponent<RectTransform>();
+            itemTextRect.anchorMin = Vector2.zero;
+            itemTextRect.anchorMax = Vector2.one;
+            itemTextRect.sizeDelta = Vector2.zero;
+            itemTextRect.anchoredPosition = Vector2.zero;
+            itemTextRect.offsetMin = new Vector2(10, 0);
+            itemTextRect.offsetMax = new Vector2(-10, 0);
+
+            Text itemText = itemTextObject.AddComponent<Text>();
+            itemText.text = "Option";
+            itemText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            itemText.fontSize = 14;
+            itemText.color = Color.white;
+            itemText.alignment = TextAnchor.MiddleLeft;
+
+            // Configure ScrollRect
+            templateScrollRect.viewport = viewportRect;
+            templateScrollRect.content = contentRect;
+
+            // Configure dropdown
+            _equipSlotFilterDropdown.targetGraphic = filterBackground;
+            _equipSlotFilterDropdown.captionText = labelText;
+            _equipSlotFilterDropdown.itemText = itemText;
+            _equipSlotFilterDropdown.template = templateRect;
+
+            // Configure toggle for item selection
+            itemToggle.targetGraphic = itemBackground;
+            itemToggle.isOn = false;
+
+            // Populate dropdown options
+            PopulateEquipSlotFilterOptions();
+
+            // Add event listener for dropdown changes
+            _equipSlotFilterDropdown.onValueChanged.AddListener(new System.Action<int>(OnEquipSlotFilterChanged));
+
+            // Initially hide the template
+            templateObject.SetActive(false);
+        }
+
+        private void PopulateEquipSlotFilterOptions()
+        {
+            if (_equipSlotFilterDropdown == null) return;
+
+            _equipSlotFilterDropdown.options.Clear();
+
+            // Add "NONE" option first
+            _equipSlotFilterDropdown.options.Add(new Dropdown.OptionData("NONE"));
+
+            // Add all EquipSlotTypeFlag enum values
+            var enumValues = System.Enum.GetValues(typeof(Il2Cpp.EquipSlotTypeFlag));
+            foreach (Il2Cpp.EquipSlotTypeFlag flag in enumValues)
+            {
+                // Skip "All" since we use "NONE" instead
+                if (flag == Il2Cpp.EquipSlotTypeFlag.All) continue;
+                
+                _equipSlotFilterDropdown.options.Add(new Dropdown.OptionData(flag.ToString()));
+            }
+
+            // Set default to "NONE" (index 0)
+            _equipSlotFilterDropdown.value = 0;
+        }
+
+        private void OnEquipSlotFilterChanged(int selectedIndex)
+        {
+            if (_equipSlotFilterDropdown == null) return;
+
+            if (selectedIndex == 0)
+            {
+                // "NONE" selected - no filtering
+                _currentEquipSlotFilter = (Il2Cpp.EquipSlotTypeFlag)(-1); // Use -1 to represent "no filter"
+            }
+            else
+            {
+                // Get the enum value for the selected option
+                var enumValues = System.Enum.GetValues(typeof(Il2Cpp.EquipSlotTypeFlag));
+                var filteredValues = new List<Il2Cpp.EquipSlotTypeFlag>();
+                
+                foreach (Il2Cpp.EquipSlotTypeFlag flag in enumValues)
+                {
+                    if (flag != Il2Cpp.EquipSlotTypeFlag.All)
+                    {
+                        filteredValues.Add(flag);
+                    }
+                }
+                
+                if (selectedIndex - 1 < filteredValues.Count)
+                {
+                    _currentEquipSlotFilter = filteredValues[selectedIndex - 1];
+                }
+            }
+
+            // TODO: Apply filter (will be implemented later)
+            // For now, just refresh the list with current search text
+            string currentSearchText = _searchInputField?.text ?? "";
+            ExecuteSearch(currentSearchText);
         }
 
         private void OnSearchTextChanged(string searchText)

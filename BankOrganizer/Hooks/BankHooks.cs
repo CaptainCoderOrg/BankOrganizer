@@ -68,7 +68,12 @@ public class ItemDataReference
     private int _id;
     public int BankIndex { get; set; }
     public int ItemSlotIndex { get; set; }
-    public UIItemSlot ItemSlot { get; set;  }
+    public UIItemSlot ItemSlot { get; set; }
+    public EquipSlotTypeFlag AllowedLocations { get; set; }
+    public bool HasLocations { get; set; }
+    public EntityClassMask AllowedClasses { get; set; }
+    public bool HasClasses { get; set; }
+
     public int Id
     {
         get => _id;
@@ -142,7 +147,7 @@ public class ItemDataReference
             MelonLogger.Error($"Item Slot could not be found");
             return;
         }
-        
+
         try
         {
             // Create a PointerEventData for right-click simulation
@@ -154,17 +159,17 @@ public class ItemDataReference
             }
 
             var pointerEventData = new UnityEngine.EventSystems.PointerEventData(eventSystem);
-            
+
             // Configure for right-click
             pointerEventData.button = UnityEngine.EventSystems.PointerEventData.InputButton.Right;
             pointerEventData.clickCount = 1;
             pointerEventData.clickTime = UnityEngine.Time.unscaledTime;
             pointerEventData.eligibleForClick = true;
-            
+
             // Set position (can be approximate since we're simulating)
             pointerEventData.position = new UnityEngine.Vector2(0, 0);
             pointerEventData.pressPosition = new UnityEngine.Vector2(0, 0);
-            
+
             // Set the target GameObject
             pointerEventData.pointerClick = ItemSlot.gameObject;
             pointerEventData.pointerPress = ItemSlot.gameObject;
@@ -172,7 +177,7 @@ public class ItemDataReference
 
             // Call the PointerClicked method to simulate right-click
             ItemSlot.PointerClicked(pointerEventData);
-            
+
         }
         catch (System.Exception ex)
         {
@@ -200,6 +205,10 @@ public class ItemDataReference
         Id = -1;
         Sprite = null;
         ItemSlot = null;
+        HasClasses = false;
+        HasLocations = false;
+        AllowedClasses = 0;
+        AllowedLocations = 0;
         if (_isDirty)
         {
             OnChange?.Invoke(this);
@@ -221,6 +230,36 @@ public class ItemDataReference
         Id = slot.Item.Template.ItemId;
         MaxStackSize = slot.Item.Template.MaxStackSize;
         ItemSlot = slot;
+        HasClasses = false;
+        HasLocations = false;
+        try
+        {
+            // IL2CPP garbage collection on calling AllowedClasses is an issue so we need
+            // to wrap this in a try catch. There may be a way to do this without the try catch
+            HasClasses = slot.Item.Template.AllowedClasses.HasValue;
+            if (HasClasses)
+            {
+                AllowedClasses = slot.Item.Template.AllowedClasses.Value;
+            }
+        }
+        catch (System.NullReferenceException ex)
+        {
+
+        }
+
+        try
+        {
+            HasLocations = slot.Item.Template?.AllowedLocations.HasValue ?? false;
+            if (HasLocations)
+            {
+                AllowedLocations = slot.Item.Template.AllowedLocations.Value;
+            }
+        }
+        catch (System.NullReferenceException ex)
+        {
+
+        }
+
         if (_isDirty)
         {
             OnChange?.Invoke(this);
