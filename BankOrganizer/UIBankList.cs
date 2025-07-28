@@ -25,7 +25,6 @@ namespace BankOrganizer.UI
 
         private void OnBankDataChanged()
         {
-            MelonLogger.Msg("Bank data changed - refreshing UI");
             RefreshList();
         }
 
@@ -124,7 +123,6 @@ namespace BankOrganizer.UI
                     CreateItemListEntry(bankResult.Entries[i]);
                 }
 
-                MelonLogger.Msg($"Refreshed bank list with {bankResult.Entries.Count} unique items using {bankResult.TotalSlots} slots");
             }
             catch (System.Exception ex)
             {

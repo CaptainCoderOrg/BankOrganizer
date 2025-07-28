@@ -8,19 +8,6 @@ using UnityEngine.EventSystems;
 
 namespace BankOrganizer.Hooks;
 
-
-[HarmonyPatch(typeof(UIBagManager),
-    nameof(UIBagManager.Awake)
-    )]
-public class UIBagManagerAwake
-{
-    // public unsafe override void OnInitialize(IEntity entity, Item item)
-    public static void Postfix(UIBagManager __instance)
-    {
-        MelonLogger.Msg("Postfix: UIBagManager.Awake");
-    }
-}
-
 [HarmonyPatch(typeof(UIItemSlot),
     nameof(UIItemSlot.SetItem),
     typeof(IEntity), typeof(Item), typeof(int)
@@ -35,20 +22,6 @@ public class UIItemSlotSetItem
         if (__instance.SlotType != SlotType.Bank) { return; }
         if (__instance.ParentGuid == default) { return; } // Is a root bank slo
         BankContainerManager.Instance.SyncItemSlot(__instance);
-    }
-}
-
-[HarmonyPatch(typeof(UIItemSlot),
-    nameof(UIItemSlot.PointerClicked),
-    typeof(PointerEventData)
-    )]
-public class UIItemSlotPointerClicked
-{
-    // public unsafe override void PointerClicked(PointerEventData eventData)
-    public static void Postfix(UIItemSlot __instance, PointerEventData eventData)
-    {
-        MelonLogger.Msg("Postfix: UIItemSlot.PointerClicked");
-        MelonLogger.Msg($"{eventData}");
     }
 }
 
@@ -92,19 +65,6 @@ public class UIBagManagerCreateBagWindowIfItDoesNotExist
 }
 
 
-[HarmonyPatch(typeof(UIBagManager),
-    nameof(UIBagManager.OnDestroy)
-    )]
-public class UIBagManagerOnDestroy
-{
-    // public unsafe override void OnInitialize(IEntity entity, Item item)
-    public static void Prefix(UIBagManager __instance)
-    {
-        MelonLogger.Msg("Prefix: UIBagManager.OnDestroy");
-
-    }
-
-}
 
 public class ItemDataReference
 {
@@ -185,7 +145,6 @@ public class ItemDataReference
             MelonLogger.Error($"Item Slot could not be found");
             return;
         }
-        MelonLogger.Msg($"Moving to Inventory: {this}");
         
         try
         {
@@ -217,7 +176,6 @@ public class ItemDataReference
             // Call the PointerClicked method to simulate right-click
             ItemSlot.PointerClicked(pointerEventData);
             
-            MelonLogger.Msg($"Simulated right-click on {this} to move to inventory");
         }
         catch (System.Exception ex)
         {
@@ -228,7 +186,6 @@ public class ItemDataReference
 
     public void OnClickBankStack()
     {
-        MelonLogger.Msg($"Clicked {this}");
         MoveItemToInventory();
     }
 
@@ -267,7 +224,6 @@ public class ItemDataReference
         Id = slot.Item.Template.ItemId;
         MaxStackSize = slot.Item.Template.MaxStackSize;
         ItemSlot = slot;
-        MelonLogger.Msg($"ItemSlot: {ItemSlot} | {ItemSlot is UIItemStorageSlot}");
         if (_isDirty)
         {
             OnChange?.Invoke(this);
@@ -318,7 +274,6 @@ public class BankContainerManager
 
     private void OnContainerChanged(BankContainer container)
     {
-        MelonLogger.Msg($"Bank Container Changed: {container.GUID}");
         // Trigger the bank data changed event
         OnBankDataChanged?.Invoke();
     }
@@ -340,7 +295,6 @@ public class BankContainerManager
 
     public void ReportItemChanged(ItemDataReference idr)
     {
-        MelonLogger.Msg($"Item Data Reference Changed: {idr}");
         // Trigger the bank data changed event
         OnBankDataChanged?.Invoke();
     }
@@ -383,7 +337,6 @@ public class BankContainer
 
     private void OnItemChanged(ItemDataReference idr)
     {
-        MelonLogger.Msg($"Item changed in container {GUID}: {idr}");
         // Trigger container changed event
         OnContainerChanged?.Invoke(this);
     }
