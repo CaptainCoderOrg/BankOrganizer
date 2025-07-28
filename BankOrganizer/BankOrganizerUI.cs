@@ -34,6 +34,9 @@ namespace BankOrganizer.UI
 
         public void HandleInput()
         {
+            // Handle dragging
+            _mainPanel?.HandleDragging();
+
             // Check for Ctrl+K input
             if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
             {
@@ -53,7 +56,7 @@ namespace BankOrganizer.UI
             if (_isVisible)
             {
                 _mainPanel?.RefreshContent();
-                //LogBankInformation();
+                LogBankInformation();
             }
 
             MelonLogger.Msg($"Bank Organizer UI {(_isVisible ? "opened" : "closed")}");

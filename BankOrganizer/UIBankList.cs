@@ -201,5 +201,10 @@ namespace BankOrganizer.UI
                 _scrollView = null;
             }
         }
+
+        public GameObject? GetScrollView()
+        {
+            return _scrollView;
+        }
     }
 }
