@@ -277,7 +277,7 @@ namespace BankOrganizer.UI
             textRect.anchoredPosition = Vector2.zero;
 
             Text buttonText = buttonTextObject.AddComponent<Text>();
-            buttonText.text = "Filters";
+            buttonText.text = "Slot Filters";
             buttonText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             buttonText.fontSize = 12;
             buttonText.color = Color.white;
@@ -300,7 +300,7 @@ namespace BankOrganizer.UI
             _filtersPanel.transform.SetParent(_panelObject.transform, false);
 
             RectTransform panelRect = _filtersPanel.AddComponent<RectTransform>();
-            panelRect.sizeDelta = new Vector2(300, 400); // Fixed size panel
+            panelRect.sizeDelta = new Vector2(300, 310); // Increased height to show all rows
             panelRect.anchorMin = new Vector2(1f, 1f); // Top-right anchor
             panelRect.anchorMax = new Vector2(1f, 1f);
             panelRect.pivot = new Vector2(0f, 1f); // Top-left pivot
@@ -359,7 +359,7 @@ namespace BankOrganizer.UI
             scrollRect.anchorMin = new Vector2(0f, 0f);
             scrollRect.anchorMax = new Vector2(1f, 1f);
             scrollRect.offsetMin = new Vector2(10, 10);
-            scrollRect.offsetMax = new Vector2(-10, -50); // Leave space for title
+            scrollRect.offsetMax = new Vector2(-10, -40); // Reduced space for title (was -50)
 
             ScrollRect scrollRectComponent = scrollViewObject.AddComponent<ScrollRect>();
             scrollRectComponent.horizontal = false;
@@ -395,10 +395,10 @@ namespace BankOrganizer.UI
             contentSizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             GridLayoutGroup gridLayout = contentObject.AddComponent<GridLayoutGroup>();
-            gridLayout.cellSize = new Vector2(120, 25);
-            gridLayout.spacing = new Vector2(5, 5);
+            gridLayout.cellSize = new Vector2(85, 20); // Smaller buttons: 85x20
+            gridLayout.spacing = new Vector2(3, 3); // Tighter spacing
             gridLayout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            gridLayout.constraintCount = 2; // 2 columns
+            gridLayout.constraintCount = 3; // 3 columns
             gridLayout.padding = new RectOffset(5, 5, 5, 5);
             gridLayout.childAlignment = TextAnchor.UpperLeft;
 
@@ -412,14 +412,23 @@ namespace BankOrganizer.UI
 
         private void CreateFilterToggles(GameObject parent)
         {
-            // Get all EquipSlotTypeFlag enum values
+            // Get all EquipSlotTypeFlag enum values and sort them alphabetically
             var enumValues = Enum.GetValues(typeof(Il2Cpp.EquipSlotTypeFlag));
+            var sortedFlags = new List<Il2Cpp.EquipSlotTypeFlag>();
             
             foreach (Il2Cpp.EquipSlotTypeFlag flag in enumValues)
             {
                 // Skip "All" as it's not a specific equipment slot
                 if (flag == Il2Cpp.EquipSlotTypeFlag.All) continue;
-
+                sortedFlags.Add(flag);
+            }
+            
+            // Sort alphabetically by name
+            sortedFlags.Sort((a, b) => a.ToString().CompareTo(b.ToString()));
+            
+            // Create toggles in alphabetical order
+            foreach (var flag in sortedFlags)
+            {
                 CreateSingleToggle(flag, parent);
             }
         }
@@ -452,8 +461,8 @@ namespace BankOrganizer.UI
             Text toggleText = textObject.AddComponent<Text>();
             toggleText.text = equipSlotFlag.ToString();
             toggleText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            toggleText.fontSize = 11;
-            toggleText.color = Color.black; // Start as inactive (black)
+            toggleText.fontSize = 9; // Smaller font size
+            toggleText.color = Color.white; // Start as inactive (white)
             toggleText.alignment = TextAnchor.MiddleCenter;
 
             // Store reference to the text component
@@ -481,10 +490,10 @@ namespace BankOrganizer.UI
             {
                 // Remove from active filters
                 _activeFilters.Remove(equipSlotFlag);
-                // Set text to black (inactive)
+                // Set text to white (inactive)
                 if (_filterToggleTexts.TryGetValue(equipSlotFlag, out Text? text))
                 {
-                    text.color = Color.black;
+                    text.color = Color.white;
                 }
             }
             else
