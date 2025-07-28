@@ -33,6 +33,9 @@ namespace BankOrganizer.UI
             ScrollRect scrollRectComponent = _scrollView.AddComponent<ScrollRect>();
             scrollRectComponent.horizontal = false;
             scrollRectComponent.vertical = true;
+            scrollRectComponent.scrollSensitivity = 30f; // Increase scroll speed (default is usually around 10)
+            scrollRectComponent.inertia = true; // Enable inertia for smooth scrolling
+            scrollRectComponent.decelerationRate = 0.135f; // How quickly scrolling slows down
 
             // Create viewport
             GameObject viewport = new GameObject("Viewport");

@@ -53,7 +53,7 @@ namespace BankOrganizer.UI
             if (_isVisible)
             {
                 _mainPanel?.RefreshContent();
-                LogBankInformation();
+                //LogBankInformation();
             }
 
             MelonLogger.Msg($"Bank Organizer UI {(_isVisible ? "opened" : "closed")}");
