@@ -77,7 +77,7 @@ namespace BankOrganizer.UI
 
             // Add VerticalLayoutGroup for automatic item positioning
             VerticalLayoutGroup layoutGroup = _itemListContent.AddComponent<VerticalLayoutGroup>();
-            layoutGroup.childControlHeight = false; // Changed to false for dynamic heights
+            layoutGroup.childControlHeight = true; // Changed to false for dynamic heights
             layoutGroup.childControlWidth = true;
             layoutGroup.childForceExpandHeight = false;
             layoutGroup.childForceExpandWidth = true;
@@ -129,10 +129,6 @@ namespace BankOrganizer.UI
             GameObject headerEntry = new GameObject("SummaryHeader");
             headerEntry.transform.SetParent(_itemListContent.transform, false);
 
-            // Add background with different color
-            Image headerBackground = headerEntry.AddComponent<Image>();
-            headerBackground.color = new Color(0.1f, 0.3f, 0.5f, 0.7f); // Blue tint
-
             // Create text for summary
             GameObject textObj = new GameObject("HeaderText");
             textObj.transform.SetParent(headerEntry.transform, false);
@@ -146,14 +142,14 @@ namespace BankOrganizer.UI
             Text headerText = textObj.AddComponent<Text>();
             headerText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             headerText.fontSize = 12;
-            headerText.color = Color.cyan;
+            headerText.color = Color.white;
             headerText.alignment = TextAnchor.MiddleCenter;
             headerText.text = $"{uniqueItems} Unique Items • {totalSlots} Slots Used";
 
             // Add layout element
             LayoutElement layoutElement = headerEntry.AddComponent<LayoutElement>();
-            layoutElement.preferredHeight = 25;
-            layoutElement.minHeight = 25;
+            layoutElement.preferredHeight = 12;
+            layoutElement.minHeight = 12;
         }
 
         private void CreateItemListEntry(BankEntry entry)
@@ -172,7 +168,7 @@ namespace BankOrganizer.UI
 
             // Add vertical layout group (name on top, stacks below)
             VerticalLayoutGroup verticalLayout = itemEntry.AddComponent<VerticalLayoutGroup>();
-            verticalLayout.childControlHeight = false;
+            verticalLayout.childControlHeight = true;
             verticalLayout.childControlWidth = true;
             verticalLayout.childForceExpandHeight = false;
             verticalLayout.childForceExpandWidth = true;
