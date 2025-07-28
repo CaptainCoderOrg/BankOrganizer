@@ -22,6 +22,11 @@ namespace BankOrganizer.UI
         private Vector2 _minSize = new Vector2(400, 300); // Minimum panel size
         private Vector2 _maxSize = new Vector2(1200, 900); // Maximum panel size
 
+        // Auto camera blocking for interactions
+        private bool _autoBlockingEnabled = false;
+        private float _autoBlockingTimer = 0f;
+        private const float AUTO_BLOCKING_DURATION = 0.5f; // How long to keep blocking after interaction stops
+
         public GameObject? PanelObject => _panelObject;
 
         public void Create(GameObject? canvasParent)
@@ -68,17 +73,20 @@ namespace BankOrganizer.UI
 
         private void OnBlockCameraToggled(bool isBlocked)
         {
-            MelonLoader.MelonLogger.Msg($"Camera blocking toggled: {(isBlocked ? "ON" : "OFF")}");
+            MelonLoader.MelonLogger.Msg($"Manual camera blocking toggled: {(isBlocked ? "ON" : "OFF")}");
 
             if (isBlocked)
             {
-                // Enable camera blocking
+                // Enable camera blocking manually
                 CameraBlocker.EnableBlocking();
             }
             else
             {
-                // Disable camera blocking
-                CameraBlocker.DisableBlocking();
+                // Only disable if auto-blocking isn't active
+                if (!_autoBlockingEnabled)
+                {
+                    CameraBlocker.DisableBlocking();
+                }
             }
 
             // Log the current blocking status
@@ -181,7 +189,7 @@ namespace BankOrganizer.UI
 
         public void HandleDragging()
         {
-            if (_panelObject == null) return;
+            if (_panelObject == null || !_panelObject.activeInHierarchy) return;
 
             Vector2 mousePosition = Input.mousePosition;
             RectTransform panelRect = _panelObject.GetComponent<RectTransform>();
@@ -198,6 +206,12 @@ namespace BankOrganizer.UI
             {
                 HandlePanelDrag(mousePosition, panelRect);
             }
+
+            // Handle scrolling detection
+            HandleScrolling();
+
+            // Update auto-blocking timer and state
+            UpdateAutoBlocking();
         }
 
         private void HandleResize(Vector2 mousePosition, RectTransform panelRect)
@@ -214,6 +228,7 @@ namespace BankOrganizer.UI
                 {
                     _isResizing = true;
                     _lastMousePosition = mousePosition;
+                    EnableAutoBlocking("resizing");
                 }
             }
 
@@ -234,12 +249,17 @@ namespace BankOrganizer.UI
                 panelRect.sizeDelta = newSize;
 
                 _lastMousePosition = mousePosition;
+                RefreshAutoBlocking(); // Keep blocking active while resizing
             }
 
             // Stop resizing
             if (Input.GetMouseButtonUp(0))
             {
-                _isResizing = false;
+                if (_isResizing)
+                {
+                    _isResizing = false;
+                    // Auto-blocking will timeout naturally
+                }
             }
         }
 
@@ -253,6 +273,7 @@ namespace BankOrganizer.UI
                 {
                     _isDragging = true;
                     _lastMousePosition = mousePosition;
+                    EnableAutoBlocking("dragging");
                 }
             }
 
@@ -262,12 +283,17 @@ namespace BankOrganizer.UI
                 Vector2 mouseDelta = mousePosition - _lastMousePosition;
                 panelRect.position += new Vector3(mouseDelta.x, mouseDelta.y, 0);
                 _lastMousePosition = mousePosition;
+                RefreshAutoBlocking(); // Keep blocking active while dragging
             }
 
             // Stop dragging
             if (Input.GetMouseButtonUp(0))
             {
-                _isDragging = false;
+                if (_isDragging)
+                {
+                    _isDragging = false;
+                    // Auto-blocking will timeout naturally
+                }
             }
         }
 
@@ -306,6 +332,75 @@ namespace BankOrganizer.UI
             return true; // Mouse is over panel background, not scroll area or resize handle
         }
 
+        private void HandleScrolling()
+        {
+            // Only handle scrolling if panel is visible and active
+            if (_panelObject == null || !_panelObject.activeInHierarchy) return;
+
+            // Check if mouse is over the scroll area and scrolling is happening
+            if (_bankList?.GetScrollView() != null)
+            {
+                GameObject scrollView = _bankList.GetScrollView();
+                RectTransform scrollRect = scrollView.GetComponent<RectTransform>();
+                Vector2 mousePosition = Input.mousePosition;
+
+                if (scrollRect != null && RectTransformUtility.RectangleContainsScreenPoint(scrollRect, mousePosition))
+                {
+                    // Check for scroll wheel input
+                    float scrollDelta = Input.GetAxis("Mouse ScrollWheel");
+                    if (Mathf.Abs(scrollDelta) > 0.01f) // Small threshold to avoid noise
+                    {
+                        EnableAutoBlocking("scrolling");
+                    }
+                }
+            }
+        }
+
+        private void EnableAutoBlocking(string reason)
+        {
+            if (!_autoBlockingEnabled)
+            {
+                _autoBlockingEnabled = true;
+                if (!CameraBlocker.IsBlocking)
+                {
+                    CameraBlocker.EnableBlocking();
+                    MelonLoader.MelonLogger.Msg($"Auto camera blocking enabled for {reason}");
+                }
+            }
+            _autoBlockingTimer = AUTO_BLOCKING_DURATION;
+        }
+
+        private void RefreshAutoBlocking()
+        {
+            if (_autoBlockingEnabled)
+            {
+                _autoBlockingTimer = AUTO_BLOCKING_DURATION;
+            }
+        }
+
+        private void UpdateAutoBlocking()
+        {
+            if (_autoBlockingEnabled)
+            {
+                _autoBlockingTimer -= Time.deltaTime;
+
+                if (_autoBlockingTimer <= 0f)
+                {
+                    _autoBlockingEnabled = false;
+
+                    // Only disable camera blocking if the manual checkbox isn't checked
+                    if (_blockCameraCheckbox != null && !_blockCameraCheckbox.IsChecked)
+                    {
+                        if (CameraBlocker.IsBlocking)
+                        {
+                            CameraBlocker.DisableBlocking();
+                            MelonLoader.MelonLogger.Msg("Auto camera blocking disabled");
+                        }
+                    }
+                }
+            }
+        }
+
         public bool IsDragging => _isDragging;
         public bool IsResizing => _isResizing;
 
@@ -316,6 +411,10 @@ namespace BankOrganizer.UI
             {
                 CameraBlocker.DisableBlocking();
             }
+
+            // Reset auto-blocking state
+            _autoBlockingEnabled = false;
+            _autoBlockingTimer = 0f;
 
             _titleText?.Destroy();
             _bankList?.Destroy();
