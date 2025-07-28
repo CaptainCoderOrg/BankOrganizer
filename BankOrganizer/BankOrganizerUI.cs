@@ -49,9 +49,10 @@ namespace BankOrganizer.UI
             _isVisible = !_isVisible;
             SetVisible(_isVisible);
 
-            // Log bank information when opening the UI
+            // Refresh the UI content when opening
             if (_isVisible)
             {
+                _mainPanel?.RefreshContent();
                 LogBankInformation();
             }
 

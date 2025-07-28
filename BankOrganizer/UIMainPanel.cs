@@ -7,6 +7,7 @@ namespace BankOrganizer.UI
     {
         private GameObject? _panelObject;
         private UITitleText? _titleText;
+        private UIBankList? _bankList;
 
         public GameObject? PanelObject => _panelObject;
 
@@ -37,11 +38,21 @@ namespace BankOrganizer.UI
             // Create title text
             _titleText = new UITitleText();
             _titleText.Create(_panelObject);
+
+            // Create bank list
+            _bankList = new UIBankList();
+            _bankList.Create(_panelObject);
+        }
+
+        public void RefreshContent()
+        {
+            _bankList?.RefreshList();
         }
 
         public void Destroy()
         {
             _titleText?.Destroy();
+            _bankList?.Destroy();
 
             if (_panelObject != null)
             {
