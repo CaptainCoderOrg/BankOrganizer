@@ -29,6 +29,7 @@ namespace BankOrganizer.UI
             // Add background image
             Image panelImage = _panelObject.AddComponent<Image>();
             panelImage.color = new Color(0.2f, 0.2f, 0.2f, 0.9f); // Dark semi-transparent background
+            panelImage.raycastTarget = true; // Block raycasts to prevent camera interaction
 
             // Add a border/outline effect
             Outline outline = _panelObject.AddComponent<Outline>();
