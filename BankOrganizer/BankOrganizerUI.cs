@@ -79,13 +79,6 @@ namespace BankOrganizer.UI
                 {
                     string stackInfo = entry.SlotCount > 1 ? $" ({entry.SlotCount} stacks)" : "";
                     MelonLogger.Msg($"{entry.ItemName}: {entry.TotalQuantity} total{stackInfo}");
-
-                    // Show additional details if the item could be better organized
-                    int wastedSlots = entry.GetWastedSlots();
-                    if (wastedSlots > 0)
-                    {
-                        MelonLogger.Msg($"  -> Could save {wastedSlots} slot{(wastedSlots > 1 ? "s" : "")} with better stacking");
-                    }
                 }
 
                 MelonLogger.Msg("=== END BANK REPORT ===");

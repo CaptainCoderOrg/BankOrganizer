@@ -179,11 +179,17 @@ namespace BankOrganizer.Models
         {
             if (!HasItems) return "Empty";
 
-            var stackSizes = _itemReferences
-                .Where(item => item.StackSize > 0)
-                .Select(item => item.StackSize)
-                .OrderByDescending(size => size)
-                .ToList();
+            var stackSizes = new List<int>();
+            foreach (var item in _itemReferences)
+            {
+                if (item.StackSize > 0)
+                {
+                    stackSizes.Add(item.StackSize);
+                }
+            }
+
+            // Sort in descending order
+            stackSizes.Sort((a, b) => b.CompareTo(a));
 
             if (stackSizes.Count == 1)
             {
@@ -191,29 +197,6 @@ namespace BankOrganizer.Models
             }
 
             return $"{string.Join(", ", stackSizes)} (Total: {TotalQuantity})";
-        }
-
-        /// <summary>
-        /// Calculate how efficiently the item is stacked
-        /// Returns percentage of optimal stacking (1.0 = perfectly stacked)
-        /// </summary>
-        public double GetStackingEfficiency()
-        {
-            if (!HasItems || MaxStackSize <= 0) return 0.0;
-
-            int optimalSlots = (int)Math.Ceiling((double)TotalQuantity / MaxStackSize);
-            return (double)optimalSlots / SlotCount;
-        }
-
-        /// <summary>
-        /// Get the number of slots that could be saved with optimal stacking
-        /// </summary>
-        public int GetWastedSlots()
-        {
-            if (!HasItems || MaxStackSize <= 0) return 0;
-
-            int optimalSlots = (int)Math.Ceiling((double)TotalQuantity / MaxStackSize);
-            return Math.Max(0, SlotCount - optimalSlots);
         }
     }
 }
