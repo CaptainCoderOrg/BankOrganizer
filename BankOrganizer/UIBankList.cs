@@ -1,7 +1,10 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using BankOrganizer.Models;
+using BankOrganizer.Hooks;
 using MelonLoader;
+using System;
+using System.Collections.Generic;
 
 namespace BankOrganizer.UI
 {
@@ -74,7 +77,7 @@ namespace BankOrganizer.UI
 
             // Add VerticalLayoutGroup for automatic item positioning
             VerticalLayoutGroup layoutGroup = _itemListContent.AddComponent<VerticalLayoutGroup>();
-            layoutGroup.childControlHeight = true;
+            layoutGroup.childControlHeight = false; // Changed to false for dynamic heights
             layoutGroup.childControlWidth = true;
             layoutGroup.childForceExpandHeight = false;
             layoutGroup.childForceExpandWidth = true;
@@ -155,6 +158,7 @@ namespace BankOrganizer.UI
 
         private void CreateItemListEntry(BankEntry entry)
         {
+            // Create single row container
             GameObject itemEntry = new GameObject($"Item_{entry.ItemId}");
             itemEntry.transform.SetParent(_itemListContent.transform, false);
 
@@ -162,30 +166,147 @@ namespace BankOrganizer.UI
             Image entryBackground = itemEntry.AddComponent<Image>();
             entryBackground.color = new Color(0.3f, 0.3f, 0.3f, 0.5f);
 
-            // Create text for item info
-            GameObject textObj = new GameObject("ItemText");
-            textObj.transform.SetParent(itemEntry.transform, false);
+            // Add ContentSizeFitter for dynamic height based on stack count
+            ContentSizeFitter entrySizeFitter = itemEntry.AddComponent<ContentSizeFitter>();
+            entrySizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            RectTransform textRect = textObj.AddComponent<RectTransform>();
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = new Vector2(5, 2);
-            textRect.offsetMax = new Vector2(-5, -2);
+            // Add horizontal layout group
+            HorizontalLayoutGroup horizontalLayout = itemEntry.AddComponent<HorizontalLayoutGroup>();
+            horizontalLayout.childControlHeight = false;
+            horizontalLayout.childControlWidth = false;
+            horizontalLayout.childForceExpandHeight = false;
+            horizontalLayout.childForceExpandWidth = false;
+            horizontalLayout.spacing = 10f;
+            horizontalLayout.padding = new RectOffset(10, 10, 5, 5);
 
-            Text itemText = textObj.AddComponent<Text>();
-            itemText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            itemText.fontSize = 14;
-            itemText.color = Color.white;
-            itemText.alignment = TextAnchor.MiddleLeft;
+            // Create item name container (left side)
+            CreateItemNameContainer(entry, itemEntry);
 
-            // Format text using the BankEntry data
+            // Create stacks container (right side)
+            CreateStacksContainer(entry, itemEntry);
+        }
+
+        private void CreateItemNameContainer(BankEntry entry, GameObject parent)
+        {
+            GameObject nameContainer = new GameObject("ItemName");
+            nameContainer.transform.SetParent(parent.transform, false);
+
+            // Add layout element for fixed width
+            LayoutElement nameLayout = nameContainer.AddComponent<LayoutElement>();
+            nameLayout.preferredWidth = 200f;
+            nameLayout.minWidth = 150f;
+
+            // Create item name text
+            Text nameText = nameContainer.AddComponent<Text>();
+            nameText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            nameText.fontSize = 14;
+            nameText.color = Color.white;
+            nameText.alignment = TextAnchor.MiddleLeft;
+            
+            // Include total quantity in the name display
             string stackInfo = entry.SlotCount > 1 ? $" ({entry.SlotCount} stacks)" : "";
-            itemText.text = $"{entry.ItemName} - Total: {entry.TotalQuantity}{stackInfo}";
+            nameText.text = $"{entry.ItemName}\nTotal: {entry.TotalQuantity}{stackInfo}";
+        }
 
-            // Add layout element
-            LayoutElement layoutElement = itemEntry.AddComponent<LayoutElement>();
-            layoutElement.preferredHeight = 25;
-            layoutElement.minHeight = 25;
+        private void CreateStacksContainer(BankEntry entry, GameObject parent)
+        {
+            GameObject stacksContainer = new GameObject("StacksContainer");
+            stacksContainer.transform.SetParent(parent.transform, false);
+
+            // Add layout element for flexible width
+            LayoutElement stacksLayout = stacksContainer.AddComponent<LayoutElement>();
+            stacksLayout.flexibleWidth = 1f;
+
+            // Add ContentSizeFitter for dynamic height
+            ContentSizeFitter stacksSizeFitter = stacksContainer.AddComponent<ContentSizeFitter>();
+            stacksSizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            // Add GridLayoutGroup for stack elements
+            GridLayoutGroup stacksGrid = stacksContainer.AddComponent<GridLayoutGroup>();
+            stacksGrid.cellSize = new Vector2(64, 32);
+            stacksGrid.spacing = new Vector2(4, 4);
+            stacksGrid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            
+            // Calculate column count based on available width
+            float availableWidth = 400f; // Approximate available width for stacks
+            int columnCount = Mathf.Max(1, (int)(availableWidth / (64 + 4))); // 64 cell width + 4 spacing
+            stacksGrid.constraintCount = columnCount;
+
+            // Populate stack elements
+            foreach (var itemRef in entry.ItemReferences)
+            {
+                if (itemRef.StackSize > 0)
+                {
+                    CreateStackElement(itemRef, stacksContainer);
+                }
+            }
+        }
+
+        private void CreateStackElement(ItemDataReference itemRef, GameObject parent)
+        {
+            GameObject stackElement = new GameObject($"Stack_{itemRef.StackSize}");
+            stackElement.transform.SetParent(parent.transform, false);
+
+            // Add background
+            Image stackBackground = stackElement.AddComponent<Image>();
+            stackBackground.color = new Color(0.2f, 0.2f, 0.2f, 0.6f);
+
+            // Create icon container
+            GameObject iconObj = new GameObject("StackIcon");
+            iconObj.transform.SetParent(stackElement.transform, false);
+
+            RectTransform iconRect = iconObj.AddComponent<RectTransform>();
+            iconRect.anchorMin = new Vector2(0.1f, 0.1f);
+            iconRect.anchorMax = new Vector2(0.6f, 0.9f);
+            iconRect.offsetMin = Vector2.zero;
+            iconRect.offsetMax = Vector2.zero;
+
+            Image stackIcon = iconObj.AddComponent<Image>();
+            stackIcon.color = Color.white;
+
+            // Try to set the sprite
+            if (!TrySetSprite(stackIcon, itemRef.Sprite))
+            {
+                stackIcon.color = new Color(0.5f, 0.5f, 0.5f, 0.5f);
+            }
+
+            // Create quantity text
+            GameObject quantityObj = new GameObject("StackQuantity");
+            quantityObj.transform.SetParent(stackElement.transform, false);
+
+            RectTransform quantityRect = quantityObj.AddComponent<RectTransform>();
+            quantityRect.anchorMin = new Vector2(0.6f, 0.1f);
+            quantityRect.anchorMax = new Vector2(0.9f, 0.9f);
+            quantityRect.offsetMin = Vector2.zero;
+            quantityRect.offsetMax = Vector2.zero;
+
+            Text quantityText = quantityObj.AddComponent<Text>();
+            quantityText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            quantityText.fontSize = 10;
+            quantityText.color = Color.white;
+            quantityText.alignment = TextAnchor.MiddleRight;
+            quantityText.text = $"x{itemRef.StackSize}";
+        }
+
+        private bool TrySetSprite(Image imageComponent, UnityEngine.Sprite sprite)
+        {
+            if (sprite == null || sprite.WasCollected)
+            {
+                imageComponent.sprite = null;
+                return false;
+            }
+
+            try
+            {
+                imageComponent.sprite = sprite;
+                return true;
+            }
+            catch (System.Exception ex)
+            {
+                MelonLogger.Warning($"Failed to set sprite: {ex.Message}");
+                imageComponent.sprite = null;
+                return false;
+            }
         }
 
         public void Destroy()

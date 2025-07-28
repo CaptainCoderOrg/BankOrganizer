@@ -150,6 +150,13 @@ public class ItemDataReference
             _isDirty = true;
         }
     }
+
+    private UnityEngine.Sprite _sprite;
+    public UnityEngine.Sprite? Sprite
+    {
+        get => _sprite == null || _sprite.WasCollected ? null : _sprite;
+        set => _sprite = value;
+    }
     public string? SlotKey { get; set; }
     private bool _isDirty = false;
 
@@ -167,6 +174,7 @@ public class ItemDataReference
         StackSize = 0;
         MaxStackSize = 0;
         Id = -1;
+        Sprite = null;
         if (_isDirty)
         {
             OnChange?.Invoke(this);
@@ -181,6 +189,7 @@ public class ItemDataReference
             Clear();
             return;
         }
+        Sprite = slot.sprite;
         IsItem = true;
         ItemName = slot.Item.Template.ItemName;
         StackSize = slot.Item.StackSize;

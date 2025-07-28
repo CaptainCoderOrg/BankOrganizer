@@ -6,6 +6,19 @@ using System.Linq;
 namespace BankOrganizer.Models
 {
     /// <summary>
+    /// Event arguments for expansion state changes
+    /// </summary>
+    public class ExpansionChangedEventArgs : EventArgs
+    {
+        public bool IsExpanded { get; }
+
+        public ExpansionChangedEventArgs(bool isExpanded)
+        {
+            IsExpanded = isExpanded;
+        }
+    }
+
+    /// <summary>
     /// Result object containing all bank entries and metadata
     /// </summary>
     public class BankEntryResult
@@ -30,10 +43,32 @@ namespace BankOrganizer.Models
     public class BankEntry
     {
         private readonly List<ItemDataReference> _itemReferences = new();
+        private bool _isExpanded = false;
 
         public int ItemId { get; private set; }
         public string ItemName { get; private set; } = "Unknown";
         public int MaxStackSize { get; private set; }
+
+        /// <summary>
+        /// Gets or sets whether this entry is expanded to show sub-rows
+        /// </summary>
+        public bool IsExpanded
+        {
+            get => _isExpanded;
+            private set
+            {
+                if (_isExpanded != value)
+                {
+                    _isExpanded = value;
+                    OnExpansionChanged?.Invoke(this, new ExpansionChangedEventArgs(_isExpanded));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Event fired when the expansion state of this entry changes
+        /// </summary>
+        public event EventHandler<ExpansionChangedEventArgs>? OnExpansionChanged;
 
         /// <summary>
         /// Total quantity of this item across all bank slots
@@ -197,6 +232,23 @@ namespace BankOrganizer.Models
             }
 
             return $"{string.Join(", ", stackSizes)} (Total: {TotalQuantity})";
+        }
+
+        /// <summary>
+        /// Toggle the expansion state of this entry
+        /// </summary>
+        public void ToggleExpansion()
+        {
+            IsExpanded = !IsExpanded;
+        }
+
+        /// <summary>
+        /// Set the expansion state of this entry programmatically
+        /// </summary>
+        /// <param name="expanded">True to expand, false to collapse</param>
+        public void SetExpansion(bool expanded)
+        {
+            IsExpanded = expanded;
         }
     }
 }
