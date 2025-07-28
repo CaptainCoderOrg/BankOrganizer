@@ -4,6 +4,7 @@ using Il2CppPantheonPersist;
 using MelonLoader;
 using UnityEngine.Rendering.RenderGraphModule.NativeRenderPassCompiler;
 using Console = System.Console;
+using UnityEngine.EventSystems;
 
 namespace BankOrganizer.Hooks;
 
@@ -34,6 +35,20 @@ public class UIItemSlotSetItem
         if (__instance.SlotType != SlotType.Bank) { return; }
         if (__instance.ParentGuid == default) { return; } // Is a root bank slo
         BankContainerManager.Instance.SyncItemSlot(__instance);
+    }
+}
+
+[HarmonyPatch(typeof(UIItemSlot),
+    nameof(UIItemSlot.PointerClicked),
+    typeof(PointerEventData)
+    )]
+public class UIItemSlotPointerClicked
+{
+    // public unsafe override void PointerClicked(PointerEventData eventData)
+    public static void Postfix(UIItemSlot __instance, PointerEventData eventData)
+    {
+        MelonLogger.Msg("Postfix: UIItemSlot.PointerClicked");
+        MelonLogger.Msg($"{eventData}");
     }
 }
 
@@ -96,6 +111,7 @@ public class ItemDataReference
     private int _id;
     public int BankIndex { get; set; }
     public int ItemSlotIndex { get; set; }
+    public UIItemSlot ItemSlot { get; set;  }
     public int Id
     {
         get => _id;
@@ -162,6 +178,17 @@ public class ItemDataReference
 
     public event Action<ItemDataReference>? OnChange;
 
+    public void MoveItemToInventory()
+    {
+        if (ItemSlot == null || ItemSlot.WasCollected)
+        {
+            MelonLogger.Error($"Item Slot could not be found");
+            return;
+        }
+        MelonLogger.Msg($"Moving to Inventory: {this}");
+        
+    }
+
     public override string? ToString()
     {
         return $"ItemDataReference: ({Id}) {ItemName} ({StackSize} / {MaxStackSize} @ {BankIndex}-{ItemSlotIndex})";
@@ -175,6 +202,7 @@ public class ItemDataReference
         MaxStackSize = 0;
         Id = -1;
         Sprite = null;
+        ItemSlot = null;
         if (_isDirty)
         {
             OnChange?.Invoke(this);
@@ -195,6 +223,8 @@ public class ItemDataReference
         StackSize = slot.Item.StackSize;
         Id = slot.Item.Template.ItemId;
         MaxStackSize = slot.Item.Template.MaxStackSize;
+        ItemSlot = slot;
+        MelonLogger.Msg($"ItemSlot: {ItemSlot} | {ItemSlot is UIItemStorageSlot}");
         if (_isDirty)
         {
             OnChange?.Invoke(this);
