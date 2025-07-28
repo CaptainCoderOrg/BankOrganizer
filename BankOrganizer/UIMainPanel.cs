@@ -11,7 +11,6 @@ namespace BankOrganizer.UI
         private UIBankList? _bankList;
         private GameObject? _resizeHandle;
         private GameObject? _controlsContainer;
-        private UICheckbox? _blockCameraCheckbox;
 
         // Drag functionality
         private bool _isDragging = false;
@@ -39,7 +38,7 @@ namespace BankOrganizer.UI
 
             // Add RectTransform and configure size/position
             RectTransform panelRect = _panelObject.AddComponent<RectTransform>();
-            panelRect.sizeDelta = new Vector2(600, 600);
+            panelRect.sizeDelta = new Vector2(400, 600);
             panelRect.anchorMin = new Vector2(0f, 1f); // Top-left anchor
             panelRect.anchorMax = new Vector2(0f, 1f);
             panelRect.pivot = new Vector2(0f, 1f); // Top-left pivot
@@ -71,38 +70,15 @@ namespace BankOrganizer.UI
             _bankList.Create(_panelObject);
         }
 
-        private void OnBlockCameraToggled(bool isBlocked)
-        {
-            MelonLoader.MelonLogger.Msg($"Manual camera blocking toggled: {(isBlocked ? "ON" : "OFF")}");
-
-            if (isBlocked)
-            {
-                // Enable camera blocking manually
-                CameraBlocker.EnableBlocking();
-            }
-            else
-            {
-                // Only disable if auto-blocking isn't active
-                if (!_autoBlockingEnabled)
-                {
-                    CameraBlocker.DisableBlocking();
-                }
-            }
-
-            // Log the current blocking status
-            MelonLoader.MelonLogger.Msg(CameraBlocker.GetBlockingStatus());
-        }
 
         private void EnableCameraBlocking()
         {
             // TODO: Implement camera blocking - disable zoom and rotation
-            MelonLoader.MelonLogger.Msg("Camera blocking enabled - zoom and rotation disabled");
         }
 
         private void DisableCameraBlocking()
         {
             // TODO: Implement camera unblocking - enable zoom and rotation
-            MelonLoader.MelonLogger.Msg("Camera blocking disabled - zoom and rotation enabled");
         }
 
         private void CreateResizeHandle()
@@ -176,10 +152,6 @@ namespace BankOrganizer.UI
             layoutGroup.padding = new RectOffset(10, 10, 5, 5);
             layoutGroup.spacing = 5f;
 
-            // Create camera blocking checkbox
-            _blockCameraCheckbox = new UICheckbox();
-            _blockCameraCheckbox.Create(_controlsContainer, "Block Camera Movement", false);
-            _blockCameraCheckbox.OnValueChanged += OnBlockCameraToggled;
         }
 
         public void RefreshContent()
@@ -203,8 +175,6 @@ namespace BankOrganizer.UI
             RectTransform panelRect = _panelObject.GetComponent<RectTransform>();
             if (panelRect == null) return;
 
-            // Handle checkbox clicks first
-            _blockCameraCheckbox?.HandleClick();
 
             // Handle resize functionality (higher priority than dragging)
             HandleResize(mousePosition, panelRect);
@@ -372,7 +342,6 @@ namespace BankOrganizer.UI
                 if (!CameraBlocker.IsBlocking)
                 {
                     CameraBlocker.EnableBlocking();
-                    MelonLoader.MelonLogger.Msg($"Auto camera blocking enabled for {reason}");
                 }
             }
             _autoBlockingTimer = AUTO_BLOCKING_DURATION;
@@ -396,14 +365,9 @@ namespace BankOrganizer.UI
                 {
                     _autoBlockingEnabled = false;
 
-                    // Only disable camera blocking if the manual checkbox isn't checked
-                    if (_blockCameraCheckbox != null && !_blockCameraCheckbox.IsChecked)
+                    if (CameraBlocker.IsBlocking)
                     {
-                        if (CameraBlocker.IsBlocking)
-                        {
-                            CameraBlocker.DisableBlocking();
-                            MelonLoader.MelonLogger.Msg("Auto camera blocking disabled");
-                        }
+                        CameraBlocker.DisableBlocking();
                     }
                 }
             }
@@ -426,7 +390,6 @@ namespace BankOrganizer.UI
 
             _titleText?.Destroy();
             _bankList?.Destroy();
-            _blockCameraCheckbox?.Destroy();
 
             if (_controlsContainer != null)
             {

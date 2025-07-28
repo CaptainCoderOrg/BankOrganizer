@@ -24,7 +24,6 @@ namespace BankOrganizer.UI
                 // Start with UI hidden
                 SetVisible(false);
 
-                MelonLogger.Msg("Bank Organizer UI created successfully");
             }
             catch (System.Exception ex)
             {
@@ -51,46 +50,8 @@ namespace BankOrganizer.UI
         {
             _isVisible = !_isVisible;
             SetVisible(_isVisible);
-
-            // Log bank information when opening (RefreshContent is now handled in SetVisible)
-            if (_isVisible)
-            {
-                LogBankInformation();
-            }
-
-            MelonLogger.Msg($"Bank Organizer UI {(_isVisible ? "opened" : "closed")}");
         }
 
-        private void LogBankInformation()
-        {
-            try
-            {
-                var bankResult = BankEntry.BuildBankEntries();
-
-                MelonLogger.Msg("=== BANK INVENTORY REPORT ===");
-                MelonLogger.Msg($"Total Slots Occupied: {bankResult.TotalSlots}");
-                MelonLogger.Msg($"Unique Items: {bankResult.Entries.Count}");
-                MelonLogger.Msg("");
-
-                if (bankResult.Entries.Count == 0)
-                {
-                    MelonLogger.Msg("No items found in bank.");
-                    return;
-                }
-
-                foreach (var entry in bankResult.Entries)
-                {
-                    string stackInfo = entry.SlotCount > 1 ? $" ({entry.SlotCount} stacks)" : "";
-                    MelonLogger.Msg($"{entry.ItemName}: {entry.TotalQuantity} total{stackInfo}");
-                }
-
-                MelonLogger.Msg("=== END BANK REPORT ===");
-            }
-            catch (System.Exception ex)
-            {
-                MelonLogger.Error($"Error logging bank information: {ex.Message}");
-            }
-        }
 
         public void SetVisible(bool visible)
         {
