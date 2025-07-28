@@ -158,7 +158,7 @@ namespace BankOrganizer.UI
 
         private void CreateItemListEntry(BankEntry entry)
         {
-            // Create single row container
+            // Create entry container
             GameObject itemEntry = new GameObject($"Item_{entry.ItemId}");
             itemEntry.transform.SetParent(_itemListContent.transform, false);
 
@@ -170,19 +170,19 @@ namespace BankOrganizer.UI
             ContentSizeFitter entrySizeFitter = itemEntry.AddComponent<ContentSizeFitter>();
             entrySizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            // Add horizontal layout group
-            HorizontalLayoutGroup horizontalLayout = itemEntry.AddComponent<HorizontalLayoutGroup>();
-            horizontalLayout.childControlHeight = false;
-            horizontalLayout.childControlWidth = false;
-            horizontalLayout.childForceExpandHeight = false;
-            horizontalLayout.childForceExpandWidth = false;
-            horizontalLayout.spacing = 10f;
-            horizontalLayout.padding = new RectOffset(10, 10, 5, 5);
+            // Add vertical layout group (name on top, stacks below)
+            VerticalLayoutGroup verticalLayout = itemEntry.AddComponent<VerticalLayoutGroup>();
+            verticalLayout.childControlHeight = false;
+            verticalLayout.childControlWidth = true;
+            verticalLayout.childForceExpandHeight = false;
+            verticalLayout.childForceExpandWidth = true;
+            verticalLayout.spacing = 5f;
+            verticalLayout.padding = new RectOffset(10, 10, 5, 5);
 
-            // Create item name container (left side)
+            // Create item name container (top)
             CreateItemNameContainer(entry, itemEntry);
 
-            // Create stacks container (right side)
+            // Create stacks container (bottom)
             CreateStacksContainer(entry, itemEntry);
         }
 
@@ -191,10 +191,10 @@ namespace BankOrganizer.UI
             GameObject nameContainer = new GameObject("ItemName");
             nameContainer.transform.SetParent(parent.transform, false);
 
-            // Add layout element for fixed width
+            // Add layout element for preferred height
             LayoutElement nameLayout = nameContainer.AddComponent<LayoutElement>();
-            nameLayout.preferredWidth = 200f;
-            nameLayout.minWidth = 150f;
+            nameLayout.preferredHeight = 30f;
+            nameLayout.minHeight = 20f;
 
             // Create item name text
             Text nameText = nameContainer.AddComponent<Text>();
@@ -205,17 +205,13 @@ namespace BankOrganizer.UI
             
             // Include total quantity in the name display
             string stackInfo = entry.SlotCount > 1 ? $" ({entry.SlotCount} stacks)" : "";
-            nameText.text = $"{entry.ItemName}\nTotal: {entry.TotalQuantity}{stackInfo}";
+            nameText.text = $"{entry.ItemName} - Total: {entry.TotalQuantity}{stackInfo}";
         }
 
         private void CreateStacksContainer(BankEntry entry, GameObject parent)
         {
             GameObject stacksContainer = new GameObject("StacksContainer");
             stacksContainer.transform.SetParent(parent.transform, false);
-
-            // Add layout element for flexible width
-            LayoutElement stacksLayout = stacksContainer.AddComponent<LayoutElement>();
-            stacksLayout.flexibleWidth = 1f;
 
             // Add ContentSizeFitter for dynamic height
             ContentSizeFitter stacksSizeFitter = stacksContainer.AddComponent<ContentSizeFitter>();
@@ -227,8 +223,8 @@ namespace BankOrganizer.UI
             stacksGrid.spacing = new Vector2(4, 4);
             stacksGrid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
             
-            // Calculate column count based on available width
-            float availableWidth = 400f; // Approximate available width for stacks
+            // Calculate column count based on available width (more generous now)
+            float availableWidth = 500f; // More space since we're using full width
             int columnCount = Mathf.Max(1, (int)(availableWidth / (64 + 4))); // 64 cell width + 4 spacing
             stacksGrid.constraintCount = columnCount;
 
