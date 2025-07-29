@@ -57,7 +57,7 @@ namespace BankOrganizer.UI
             scrollRect.anchorMin = new Vector2(0f, 0f);
             scrollRect.anchorMax = new Vector2(1f, 1f);
             scrollRect.offsetMin = new Vector2(10, 10); // 10px margin from edges
-            scrollRect.offsetMax = new Vector2(-10, -105); // 10px margin, 105px from top (title + controls)
+            scrollRect.offsetMax = new Vector2(-10, -130); // 10px margin, 130px from top (title + expanded controls)
 
             // Add ScrollRect component
             ScrollRect scrollRectComponent = _scrollView.AddComponent<ScrollRect>();
@@ -116,7 +116,7 @@ namespace BankOrganizer.UI
             scrollRectComponent.content = contentRect;
         }
 
-        public void RefreshList(string searchText = "")
+        public void RefreshList(string searchText = "", HashSet<Il2Cpp.EquipSlotTypeFlag>? equipSlotFilters = null)
         {
             if (_itemListContent == null) return;
 
@@ -135,9 +135,15 @@ namespace BankOrganizer.UI
 
                 // Apply search filter if search text is provided
                 var filteredEntries = ApplySearchFilter(bankResult.Entries, searchText);
+                
+                // Apply equipment slot filter if filters are active
+                filteredEntries = ApplyEquipSlotFilter(filteredEntries, equipSlotFilters);
+
+                // Determine if any filters are active
+                bool hasActiveFilters = !string.IsNullOrWhiteSpace(searchText) || (equipSlotFilters != null && equipSlotFilters.Count > 0);
 
                 // Create header showing summary (filtered count vs total)
-                CreateSummaryHeader(filteredEntries.Count, bankResult.Entries.Count, bankResult.TotalSlots, !string.IsNullOrWhiteSpace(searchText));
+                CreateSummaryHeader(filteredEntries.Count, bankResult.Entries.Count, bankResult.TotalSlots, hasActiveFilters);
 
                 // Create UI elements for each filtered bank entry - use for loop instead of foreach
                 for (int i = 0; i < filteredEntries.Count; i++)
@@ -222,6 +228,40 @@ namespace BankOrganizer.UI
                 }
             }
             return true;
+        }
+
+        /// <summary>
+        /// Apply equipment slot filter to the list of bank entries
+        /// </summary>
+        private List<BankEntry> ApplyEquipSlotFilter(List<BankEntry> entries, HashSet<Il2Cpp.EquipSlotTypeFlag>? equipSlotFilters)
+        {
+            // If no filters are active, return all entries
+            if (equipSlotFilters == null || equipSlotFilters.Count == 0)
+                return entries;
+
+            return entries.Where(entry => MatchesEquipSlotFilter(entry, equipSlotFilters)).ToList();
+        }
+
+        /// <summary>
+        /// Check if a bank entry matches any of the selected equipment slot filters
+        /// </summary>
+        private static bool MatchesEquipSlotFilter(BankEntry entry, HashSet<Il2Cpp.EquipSlotTypeFlag> equipSlotFilters)
+        {
+            // Check each ItemDataReference in the entry
+            foreach (var itemRef in entry.ItemReferences)
+            {
+                // Check if the item's AllowedLocations has any of the selected flags
+                foreach (var selectedFlag in equipSlotFilters)
+                {
+                    // Use bitwise AND to check if the flag is set (since it's a [Flags] enum)
+                    if ((itemRef.AllowedLocations & selectedFlag) == selectedFlag)
+                    {
+                        return true; // Item matches at least one selected filter
+                    }
+                }
+            }
+            
+            return false; // Item doesn't match any selected filters
         }
 
         private void CreateItemListEntry(BankEntry entry)

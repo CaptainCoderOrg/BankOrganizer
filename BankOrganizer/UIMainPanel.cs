@@ -141,19 +141,19 @@ namespace BankOrganizer.UI
             RectTransform controlsRect = _controlsContainer.AddComponent<RectTransform>();
             controlsRect.anchorMin = new Vector2(0f, 1f);
             controlsRect.anchorMax = new Vector2(1f, 1f);
-            controlsRect.sizeDelta = new Vector2(-20, 35); // 20px margin on sides, 35px height
+            controlsRect.sizeDelta = new Vector2(-20, 60); // 20px margin on sides, 60px height for search + button
             controlsRect.anchoredPosition = new Vector2(0, -60); // Position below title (which is at -30)
 
             // Add background
             Image controlsBackground = _controlsContainer.AddComponent<Image>();
             controlsBackground.color = new Color(0.15f, 0.15f, 0.15f, 0.8f); // Slightly darker than main panel
 
-            // Add horizontal layout group for controls (search + filters button)
-            HorizontalLayoutGroup layoutGroup = _controlsContainer.AddComponent<HorizontalLayoutGroup>();
+            // Add vertical layout group for controls (search on top, filters button below)
+            VerticalLayoutGroup layoutGroup = _controlsContainer.AddComponent<VerticalLayoutGroup>();
             layoutGroup.childControlHeight = true;
-            layoutGroup.childControlWidth = false;
+            layoutGroup.childControlWidth = true;
             layoutGroup.childForceExpandHeight = false;
-            layoutGroup.childForceExpandWidth = false;
+            layoutGroup.childForceExpandWidth = true;
             layoutGroup.padding = new RectOffset(10, 10, 5, 5);
             layoutGroup.spacing = 5f;
 
@@ -178,7 +178,7 @@ namespace BankOrganizer.UI
             // Add layout element to ensure proper sizing
             LayoutElement searchLayoutElement = searchContainer.AddComponent<LayoutElement>();
             searchLayoutElement.preferredHeight = 25;
-            searchLayoutElement.flexibleWidth = 1; // Take most of the space
+            searchLayoutElement.flexibleWidth = 1; // Take full width
 
             // Add background for search box
             Image searchBackground = searchContainer.AddComponent<Image>();
@@ -256,8 +256,8 @@ namespace BankOrganizer.UI
 
             // Add layout element
             LayoutElement buttonLayoutElement = filtersButtonObject.AddComponent<LayoutElement>();
-            buttonLayoutElement.preferredWidth = 60;
             buttonLayoutElement.preferredHeight = 25;
+            buttonLayoutElement.flexibleWidth = 1; // Take full width
 
             // Add button component
             _filtersButton = filtersButtonObject.AddComponent<Button>();
@@ -507,8 +507,7 @@ namespace BankOrganizer.UI
                 }
             }
 
-            // TODO: Apply filter (will be implemented later)
-            // For now, just refresh the list with current search text
+            // Apply filter by refreshing the list with current search text and updated filters
             string currentSearchText = _searchInputField?.text ?? "";
             ExecuteSearch(currentSearchText);
         }
@@ -550,8 +549,8 @@ namespace BankOrganizer.UI
 
         private void ExecuteSearch(string searchText)
         {
-            // Execute search by calling RefreshList with search text
-            _bankList?.RefreshList(searchText);
+            // Execute search by calling RefreshList with search text and active filters
+            _bankList?.RefreshList(searchText, _activeFilters);
         }
 
         public void RefreshContent()
