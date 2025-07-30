@@ -249,10 +249,13 @@ public class ItemDataReference
 
         try
         {
-            HasLocations = slot.Item.Template?.AllowedLocations.HasValue ?? false;
+            HasLocations = slot.Item.Template.AllowedLocations.HasValue;
+            MelonLogger.Msg($"ItemName: {ItemName}");
+            MelonLogger.Msg($"HasLocation: {HasLocations}");
             if (HasLocations)
             {
                 AllowedLocations = slot.Item.Template.AllowedLocations.Value;
+                MelonLogger.Msg($"AllowedLocations: {AllowedLocations}");
             }
         }
         catch (System.NullReferenceException ex)

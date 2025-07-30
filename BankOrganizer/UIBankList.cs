@@ -311,9 +311,18 @@ namespace BankOrganizer.UI
             nameText.color = Color.white;
             nameText.alignment = TextAnchor.MiddleLeft;
             
-            // Include total quantity in the name display
+            // Include total quantity and AllowedLocations in the name display for debugging
             string stackInfo = entry.SlotCount > 1 ? $" ({entry.SlotCount} stacks)" : "";
-            nameText.text = $"{entry.ItemName} - Total: {entry.TotalQuantity}{stackInfo}";
+            
+            // Get AllowedLocations from the first ItemDataReference for debugging
+            string allowedLocationsInfo = "";
+            if (entry.ItemReferences.Count > 0)
+            {
+                var firstItem = entry.ItemReferences[0];
+                allowedLocationsInfo = $" [Slots: {firstItem.AllowedLocations}]";
+            }
+            
+            nameText.text = $"{entry.ItemName} - Total: {entry.TotalQuantity}{stackInfo}{allowedLocationsInfo}";
         }
 
         private void CreateStacksContainer(BankEntry entry, GameObject parent)
