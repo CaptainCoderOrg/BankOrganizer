@@ -142,7 +142,7 @@ namespace BankOrganizer.UI
             controlsRect.anchorMin = new Vector2(0f, 1f);
             controlsRect.anchorMax = new Vector2(1f, 1f);
             controlsRect.sizeDelta = new Vector2(-20, 60); // 20px margin on sides, 60px height for search + button
-            controlsRect.anchoredPosition = new Vector2(0, -60); // Position below title (which is at -30)
+            controlsRect.anchoredPosition = new Vector2(0, -85); // Position below title (title at -30 with 50px height = -80, plus 5px margin)
 
             // Add background
             Image controlsBackground = _controlsContainer.AddComponent<Image>();

@@ -13,6 +13,8 @@ namespace BankOrganizer.UI
     {
         private GameObject? _scrollView;
         private GameObject? _itemListContent;
+        private GameObject? _statusBar;
+        private Text? _statusText;
         private bool _isListeningForChanges = false;
 
         public void Create(GameObject? panelParent)
@@ -20,6 +22,7 @@ namespace BankOrganizer.UI
             if (panelParent == null) return;
 
             CreateScrollView(panelParent);
+            CreateStatusBar(panelParent);
             
             // Don't subscribe to events immediately - wait until panel is visible
         }
@@ -56,8 +59,8 @@ namespace BankOrganizer.UI
             RectTransform scrollRect = _scrollView.AddComponent<RectTransform>();
             scrollRect.anchorMin = new Vector2(0f, 0f);
             scrollRect.anchorMax = new Vector2(1f, 1f);
-            scrollRect.offsetMin = new Vector2(10, 10); // 10px margin from edges
-            scrollRect.offsetMax = new Vector2(-10, -130); // 10px margin, 130px from top (title + expanded controls)
+            scrollRect.offsetMin = new Vector2(10, 45); // 10px margin from edges, 45px from bottom for status bar with spacing
+            scrollRect.offsetMax = new Vector2(-10, -150); // 10px margin, start right after controls (controls at -85 with 60px height = -145, plus 5px margin)
 
             // Add ScrollRect component
             ScrollRect scrollRectComponent = _scrollView.AddComponent<ScrollRect>();
@@ -133,6 +136,10 @@ namespace BankOrganizer.UI
                 // Get bank data using our new model
                 var bankResult = BankEntry.BuildBankEntries();
 
+                // Calculate total available slots and used slots
+                int totalAvailableSlots = CalculateTotalAvailableSlots();
+                int usedSlots = bankResult.TotalSlots;
+
                 // Apply search filter if search text is provided
                 var filteredEntries = ApplySearchFilter(bankResult.Entries, searchText);
                 
@@ -142,8 +149,8 @@ namespace BankOrganizer.UI
                 // Determine if any filters are active
                 bool hasActiveFilters = !string.IsNullOrWhiteSpace(searchText) || (equipSlotFilters != null && equipSlotFilters.Count > 0);
 
-                // Create header showing summary (filtered count vs total)
-                CreateSummaryHeader(filteredEntries.Count, bankResult.Entries.Count, bankResult.TotalSlots, hasActiveFilters);
+                // Update status bar with slot usage
+                UpdateStatusBar(usedSlots, totalAvailableSlots);
 
                 // Create UI elements for each filtered bank entry - use for loop instead of foreach
                 for (int i = 0; i < filteredEntries.Count; i++)
@@ -159,41 +166,73 @@ namespace BankOrganizer.UI
             }
         }
 
-        private void CreateSummaryHeader(int displayedItems, int totalItems, int totalSlots, bool isFiltered)
+        /// <summary>
+        /// Calculate the total number of available slots across all bank containers
+        /// </summary>
+        private int CalculateTotalAvailableSlots()
         {
-            GameObject headerEntry = new GameObject("SummaryHeader");
-            headerEntry.transform.SetParent(_itemListContent.transform, false);
+            try
+            {
+                int totalSlots = 0;
+                var allContainers = BankContainerManager.Instance.GetAllContainers();
+                
+                foreach (var containerKvp in allContainers)
+                {
+                    var container = containerKvp.Value;
+                    var slots = container.GetAllSlots();
+                    totalSlots += slots.Count;
+                }
+                
+                return totalSlots;
+            }
+            catch (System.Exception ex)
+            {
+                MelonLogger.Error($"Error calculating total available slots: {ex.Message}");
+                return 0;
+            }
+        }
 
-            // Create text for summary
-            GameObject textObj = new GameObject("HeaderText");
-            textObj.transform.SetParent(headerEntry.transform, false);
+        private void CreateStatusBar(GameObject panelParent)
+        {
+            // Create status bar at bottom of panel
+            _statusBar = new GameObject("StatusBar");
+            _statusBar.transform.SetParent(panelParent.transform, false);
+
+            RectTransform statusRect = _statusBar.AddComponent<RectTransform>();
+            statusRect.anchorMin = new Vector2(0f, 0f);
+            statusRect.anchorMax = new Vector2(1f, 0f);
+            statusRect.sizeDelta = new Vector2(-20, 25); // 20px margin on sides, 25px height
+            statusRect.anchoredPosition = new Vector2(0, 20f); // Position at bottom with more margin for spacing
+
+            // Add transparent background (no visible background)
+            Image statusBackground = _statusBar.AddComponent<Image>();
+            statusBackground.color = new Color(0, 0, 0, 0); // Completely transparent
+
+            // Create status text
+            GameObject textObj = new GameObject("StatusText");
+            textObj.transform.SetParent(_statusBar.transform, false);
 
             RectTransform textRect = textObj.AddComponent<RectTransform>();
             textRect.anchorMin = Vector2.zero;
             textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = new Vector2(5, 2);
-            textRect.offsetMax = new Vector2(-5, -2);
+            textRect.offsetMin = new Vector2(10, 0);
+            textRect.offsetMax = new Vector2(-10, 0);
 
-            Text headerText = textObj.AddComponent<Text>();
-            headerText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            headerText.fontSize = 12;
-            headerText.color = Color.white;
-            headerText.alignment = TextAnchor.MiddleCenter;
-            
-            // Show filtered count vs total when search is active
-            if (isFiltered)
-            {
-                headerText.text = $"{displayedItems} of {totalItems} Items • {totalSlots} Slots Used";
-            }
-            else
-            {
-                headerText.text = $"{displayedItems} Unique Items • {totalSlots} Slots Used";
-            }
+            _statusText = textObj.AddComponent<Text>();
+            _statusText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _statusText.fontSize = 14;
+            _statusText.color = Color.yellow;
+            _statusText.alignment = TextAnchor.MiddleCenter;
+            _statusText.fontStyle = FontStyle.Bold;
+            _statusText.text = "0 / 0 Slots";
+        }
 
-            // Add layout element
-            LayoutElement layoutElement = headerEntry.AddComponent<LayoutElement>();
-            layoutElement.preferredHeight = 12;
-            layoutElement.minHeight = 12;
+        private void UpdateStatusBar(int usedSlots, int totalAvailableSlots)
+        {
+            if (_statusText != null)
+            {
+                _statusText.text = $"{usedSlots} / {totalAvailableSlots} Slots";
+            }
         }
 
         /// <summary>
@@ -311,18 +350,8 @@ namespace BankOrganizer.UI
             nameText.color = Color.white;
             nameText.alignment = TextAnchor.MiddleLeft;
             
-            // Include total quantity and AllowedLocations in the name display for debugging
-            string stackInfo = entry.SlotCount > 1 ? $" ({entry.SlotCount} stacks)" : "";
-            
-            // Get AllowedLocations from the first ItemDataReference for debugging
-            string allowedLocationsInfo = "";
-            if (entry.ItemReferences.Count > 0)
-            {
-                var firstItem = entry.ItemReferences[0];
-                allowedLocationsInfo = $" [Slots: {firstItem.AllowedLocations}]";
-            }
-            
-            nameText.text = $"{entry.ItemName} - Total: {entry.TotalQuantity}{stackInfo}{allowedLocationsInfo}";
+            // Simple format: Item Name (Total Quantity)
+            nameText.text = $"{entry.ItemName} ({entry.TotalQuantity})";
         }
 
         private void CreateStacksContainer(BankEntry entry, GameObject parent)
@@ -437,6 +466,14 @@ namespace BankOrganizer.UI
                 GameObject.Destroy(_scrollView);
                 _scrollView = null;
             }
+            
+            if (_statusBar != null)
+            {
+                GameObject.Destroy(_statusBar);
+                _statusBar = null;
+            }
+            
+            _statusText = null;
         }
 
         public GameObject? GetScrollView()
